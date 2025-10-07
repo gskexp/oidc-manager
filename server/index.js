@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { registerDeviceWithJws } from "./services/registerDevice.js";
 import { ENVIRONMENT_IDS } from "../shared/environments.js";
+import { registerMockAuthorizeRoute } from "./routes/mockAuthorize.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,11 +37,12 @@ const writeConfigs = (data) => {
 };
 
 const sanitizeConfig = (config) => {
-  if (!config) {
-    return config;
-  }
-  const { lastAuthorization, ...rest } = config;
-  return rest;
+  if (!config) return config;
+  const { lastAuthorization, lastTokens, ...rest } = config;
+  return {
+    ...rest,
+    ...(lastTokens ?? {})
+  };
 };
 
 const serveSpa = (_req, res) => {
@@ -118,43 +120,12 @@ app.post("/api/register-config", async (req, res) => {
   }
 });
 
-app.get("/api/authorize", (req, res) => {
-  const { keyId } = req.query;
-  if (typeof keyId !== "string" || keyId.trim() === "") {
-    return res.status(400).send("keyId is required.");
-  }
-
-  const configs = readConfigs();
-  const config = configs[keyId];
-  if (!config) {
-    return res.status(404).send("Configuration not found.");
-  }
-
-  const state = `state-${randomUUID()}`;
-  const code = `code-${randomUUID()}`;
-  const issuedAt = new Date();
-  const expiresAt = new Date(issuedAt.getTime() + AUTHORIZATION_EXPIRY_MS);
-
-  config.lastAuthorization = {
-    state,
-    code,
-    issuedAt: issuedAt.toISOString(),
-    expiresAt: expiresAt.toISOString()
-  };
-  writeConfigs(configs);
-
-  const referer = req.get("referer");
-  let origin;
-  try {
-    origin = referer ? new URL(referer).origin : undefined;
-  } catch {
-    origin = undefined;
-  }
-  const redirectBase = origin ?? FRONTEND_FALLBACK;
-  const redirectUrl = `${redirectBase}/redirect-back-endpoint?code=${encodeURIComponent(
-    code
-  )}&state=${encodeURIComponent(state)}&keyId=${encodeURIComponent(keyId)}`;
-  res.redirect(302, redirectUrl);
+registerMockAuthorizeRoute({
+  app,
+  readConfigs,
+  writeConfigs,
+  FRONTEND_FALLBACK,
+  AUTHORIZATION_EXPIRY_MS
 });
 
 app.post("/api/b2b_token", (req, res) => {
@@ -172,14 +143,24 @@ app.post("/api/b2b_token", (req, res) => {
   const assertionExpiresAt = new Date(now.getTime() + 5 * 60 * 1000);
   const tokenExpiresAt = new Date(now.getTime() + 60 * 60 * 1000);
 
-  res.json({
+  const payload = {
     assertion: `mock-assertion-${keyId}-${randomUUID()}`,
     assertionExpiresAt: assertionExpiresAt.toISOString(),
     token: `mock-b2b-token-${keyId}-${randomUUID()}`,
     tokenExpiresAt: tokenExpiresAt.toISOString(),
     issuedAt: now.toISOString(),
     environment: config.environment
-  });
+  };
+
+  config.lastTokens = {
+    b2bAssertion: payload.assertion,
+    b2bAssertionExpiresAt: payload.assertionExpiresAt,
+    b2bToken: payload.token,
+    b2bTokenExpiresAt: payload.tokenExpiresAt
+  };
+  writeConfigs(configs);
+
+  res.json(payload);
 });
 
 app.post("/api/user_token", (req, res) => {
@@ -244,7 +225,10 @@ app.use(express.static(DIST_PATH));
 app.get("/redirect-back-endpoint", serveSpa);
 app.get("*", serveSpa);
 
-const port = process.env.PORT ?? 3001;
+const port =
+  process.env.PORT ??
+  (process.env.NODE_ENV === "production" ? 8090 : 3001);
+
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });

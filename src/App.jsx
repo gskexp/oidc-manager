@@ -43,7 +43,11 @@ const workflowReducer = (state, action) => {
         organisationId: action.payload.organisationId ?? "",
         otac: action.payload.otac ?? "",
         clientId: action.payload.clientId ?? "",
-        audience: action.payload.audience ?? ""
+        audience: action.payload.audience ?? "",
+        b2bAssertion: action.payload.b2bAssertion ?? "",
+        b2bAssertionExpiresAt: action.payload.b2bAssertionExpiresAt ?? "",
+        b2bToken: action.payload.b2bToken ?? "",
+        b2bTokenExpiresAt: action.payload.b2bTokenExpiresAt ?? ""
       };
     case "setField":
       return {
@@ -68,9 +72,55 @@ const workflowReducer = (state, action) => {
   }
 };
 
-const LOCAL_STORAGE_KEYS = {
-  envFilter: "oidc-manager.envFilter",
-  searchTerm: "oidc-manager.searchTerm"
+const SESSION_STORAGE_KEYS = {
+  attendedCredentials: "oidc-manager.session.attendedCredentials"
+};
+
+const loadAttendedCredentialsForKey = (keyId) => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.attendedCredentials);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return parsed?.[keyId] ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const saveAttendedCredentialsForKey = (keyId, credentials) => {
+  if (typeof window === "undefined" || !keyId) {
+    return;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.attendedCredentials);
+    const data = raw ? JSON.parse(raw) : {};
+    data[keyId] = credentials;
+    window.sessionStorage.setItem(SESSION_STORAGE_KEYS.attendedCredentials, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+};
+
+const clearAttendedCredentialsForKey = (keyId) => {
+  if (typeof window === "undefined" || !keyId) {
+    return;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.attendedCredentials);
+    if (!raw) {
+      return;
+    }
+    const data = JSON.parse(raw);
+    delete data[keyId];
+    window.sessionStorage.setItem(SESSION_STORAGE_KEYS.attendedCredentials, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
 };
 
 const App = () => {
@@ -80,48 +130,8 @@ const App = () => {
   const [error, setError] = useState("");
   const [workflowState, dispatch] = useReducer(workflowReducer, initialWorkflow);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    try {
-      return localStorage.getItem(LOCAL_STORAGE_KEYS.searchTerm) ?? "";
-    } catch {
-      return "";
-    }
-  });
-  const [envFilter, setEnvFilter] = useState(() => {
-    if (typeof window === "undefined") {
-      return "all";
-    }
-    try {
-      return localStorage.getItem(LOCAL_STORAGE_KEYS.envFilter) ?? "all";
-    } catch {
-      return "all";
-    }
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.searchTerm, searchTerm);
-    } catch {
-      /* ignore */
-    }
-  }, [searchTerm]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.envFilter, envFilter);
-    } catch {
-      /* ignore */
-    }
-  }, [envFilter]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [envFilter, setEnvFilter] = useState("all");
 
   const filteredConfigs = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -188,6 +198,16 @@ const App = () => {
       const matchingConfig = configs.find((cfg) => cfg.keyId === keyIdParam);
       if (matchingConfig) {
         dispatch({ type: "hydrateConfig", payload: matchingConfig });
+        const stored = loadAttendedCredentialsForKey(keyIdParam);
+        if (stored) {
+          dispatch({
+            type: "setMultiple",
+            payload: {
+              attendedClientId: stored.attendedClientId ?? "",
+              attendedClientSecret: stored.attendedClientSecret ?? ""
+            }
+          });
+        }
         setView("workflow");
       } else if (configs.length > 0) {
         setError("Returned configuration was not found. Please register or select it manually.");
@@ -202,6 +222,16 @@ const App = () => {
 
     window.history.replaceState({}, "", window.location.pathname);
   }, [configs, loadingConfigs]);
+
+  useEffect(() => {
+    if (!workflowState.keyId) {
+      return;
+    }
+    saveAttendedCredentialsForKey(workflowState.keyId, {
+      attendedClientId: workflowState.attendedClientId ?? "",
+      attendedClientSecret: workflowState.attendedClientSecret ?? ""
+    });
+  }, [workflowState.keyId, workflowState.attendedClientId, workflowState.attendedClientSecret]);
 
   const selectedEnvironment = useMemo(() => {
     return ENVIRONMENTS.find((env) => env.id === workflowState.environment) ?? null;
@@ -222,6 +252,24 @@ const App = () => {
 
   const handleSelectConfig = (config) => {
     dispatch({ type: "hydrateConfig", payload: config });
+    const stored = loadAttendedCredentialsForKey(config.keyId);
+    if (stored) {
+      dispatch({
+        type: "setMultiple",
+        payload: {
+          attendedClientId: stored.attendedClientId ?? "",
+          attendedClientSecret: stored.attendedClientSecret ?? ""
+        }
+      });
+    } else {
+      dispatch({
+        type: "setMultiple",
+        payload: {
+          attendedClientId: "",
+          attendedClientSecret: ""
+        }
+      });
+    }
     setError("");
     setView("workflow");
   };
@@ -266,6 +314,14 @@ const App = () => {
       }
       await loadConfigs();
       dispatch({ type: "hydrateConfig", payload });
+      dispatch({
+        type: "setMultiple",
+        payload: {
+          attendedClientId: "",
+          attendedClientSecret: ""
+        }
+      });
+      clearAttendedCredentialsForKey(payload.keyId);
       setView("workflow");
       form.reset();
     } catch (registerError) {
@@ -286,6 +342,10 @@ const App = () => {
       return;
     }
     setError("");
+    saveAttendedCredentialsForKey(workflowState.keyId, {
+      attendedClientId: workflowState.attendedClientId,
+      attendedClientSecret: workflowState.attendedClientSecret
+    });
     dispatch({
       type: "setMultiple",
       payload: {
@@ -440,6 +500,30 @@ const App = () => {
         userTokenExpiresAt: ""
       }
     });
+  };
+
+  const handleClearWorkflowState = () => {
+    if (workflowState.keyId) {
+      clearAttendedCredentialsForKey(workflowState.keyId);
+    }
+    dispatch({
+      type: "setMultiple",
+      payload: {
+        attendedClientId: "",
+        attendedClientSecret: "",
+        b2bAssertion: "",
+        b2bAssertionExpiresAt: "",
+        b2bToken: "",
+        b2bTokenExpiresAt: "",
+        userToken: "",
+        userTokenExpiresAt: "",
+        finalToken: "",
+        finalTokenExpiresAt: "",
+        redirectState: "",
+        authCode: ""
+      }
+    });
+    setError("");
   };
 
   const renderLanding = () => (
@@ -617,16 +701,25 @@ const App = () => {
             Simulate unattended and user flows using the registered configuration.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setView("landing");
-            dispatch({ type: "reset" });
-          }}
-          className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/60"
-        >
-          Back to landing
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClearWorkflowState}
+            className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/60"
+          >
+            Clear workflow state
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setView("landing");
+              dispatch({ type: "reset" });
+            }}
+            className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-900/60"
+          >
+            Back to landing
+          </button>
+        </div>
       </div>
 
       <section className="grid gap-6 md:grid-cols-2">
@@ -792,10 +885,53 @@ const App = () => {
 
         <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-6">
           <h4 className="text-base font-semibold text-slate-100">Step 3 · User token</h4>
-          <div className="mt-2 space-y-4 text-sm text-slate-400">
-            <div className="rounded border border-slate-800 bg-slate-900/60 px-3 py-3">
-              <p className="font-medium text-slate-200">Part 1 · Obtain authorization code</p>
-              <p className="mt-1">
+          <div className="mt-4 space-y-4 text-sm text-slate-200">
+            <div className="rounded border border-slate-800 bg-slate-900/70 px-4 py-4">
+              <p className="text-sm font-semibold text-slate-100">Attended client credentials</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Provide the attended client ID and secret before launching the redirect or exchanging the authorization code.
+              </p>
+              <label
+                className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                htmlFor="attended-client-id"
+              >
+                Attended client ID
+              </label>
+              <input
+                id="attended-client-id"
+                value={workflowState.attendedClientId}
+                onChange={(event) =>
+                  dispatch({ type: "setField", field: "attendedClientId", value: event.target.value })
+                }
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                placeholder="attended-client-id"
+              />
+
+              <label
+                className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                htmlFor="attended-client-secret"
+              >
+                Attended client secret
+              </label>
+              <input
+                id="attended-client-secret"
+                type="password"
+                value={workflowState.attendedClientSecret}
+                onChange={(event) =>
+                  dispatch({
+                    type: "setField",
+                    field: "attendedClientSecret",
+                    value: event.target.value
+                  })
+                }
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                placeholder="********"
+              />
+            </div>
+
+            <div className="rounded border border-slate-800 bg-slate-900/60 px-4 py-4">
+              <p className="font-medium text-slate-100">Part 1 · Obtain authorization code</p>
+              <p className="mt-1 text-xs text-slate-400">
                 Redirect to the OIDC login screen. After authentication, this app receives
                 <code className="mx-1 rounded bg-slate-800 px-1 py-0.5 text-xs text-slate-200">code</code>
                 and
@@ -805,7 +941,7 @@ const App = () => {
               <button
                 type="button"
                 onClick={handleAuthorizeRedirect}
-                className="mt-3 rounded-md border border-indigo-400/60 px-3 py-2 text-xs font-medium text-indigo-200 hover:bg-indigo-500/20"
+                className="mt-3 rounded-md border border-indigo-400/60 px-3 py-2 text-xs font-medium text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-60"
                 disabled={
                   isSubmitting ||
                   !workflowState.keyId ||
@@ -820,9 +956,9 @@ const App = () => {
               </p>
             </div>
 
-            <div className="rounded border border-slate-800 bg-slate-900/60 px-3 py-3">
-              <p className="font-medium text-slate-200">Part 2 · Exchange authorization code</p>
-              <p className="mt-1">
+            <div className="rounded border border-slate-800 bg-slate-900/60 px-4 py-4">
+              <p className="font-medium text-slate-100">Part 2 · Exchange authorization code</p>
+              <p className="mt-1 text-xs text-slate-400">
                 Use the captured authorization code to request a user token from the backend.
               </p>
               <button
