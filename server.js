@@ -1,0 +1,225 @@
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CONFIG_PATH = path.join(__dirname, "keys", "config.json");
+const DIST_PATH = path.join(__dirname, "dist");
+const INDEX_HTML = path.join(__dirname, "index.html");
+const FRONTEND_FALLBACK = process.env.FRONTEND_BASE_URL ?? "http://localhost:8090";
+const AUTHORIZATION_EXPIRY_MS = 5 * 60 * 1000;
+
+const app = express();
+app.use(express.json());
+
+const ensureConfigFile = () => {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
+    fs.writeFileSync(CONFIG_PATH, "{}");
+  }
+};
+
+const readConfigs = () => {
+  ensureConfigFile();
+  const contents = fs.readFileSync(CONFIG_PATH, "utf8") || "{}";
+  return JSON.parse(contents);
+};
+
+const writeConfigs = (data) => {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2));
+};
+
+const sanitizeConfig = (config) => {
+  if (!config) {
+    return config;
+  }
+  const { lastAuthorization, ...rest } = config;
+  return rest;
+};
+
+app.get("/api/configs", (_req, res) => {
+  try {
+    const configs = readConfigs();
+    const list = Object.values(configs).map(sanitizeConfig);
+    res.json({ configs: list });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to read configs." });
+  }
+});
+
+app.post("/api/register-config", (req, res) => {
+  const { keyId, environment, organisationId, otac, clientId, audience } = req.body ?? {};
+  if (!keyId || !environment || !organisationId || !otac || !clientId || !audience) {
+    return res.status(400).json({ message: "Missing required fields." });
+  }
+
+  try {
+    const configs = readConfigs();
+    const now = new Date().toISOString();
+    const existing = configs[keyId];
+    configs[keyId] = {
+      keyId,
+      environment,
+      organisationId,
+      otac,
+      clientId,
+      audience,
+      updatedAt: now,
+      createdAt: existing?.createdAt ?? now
+    };
+    if (existing?.lastAuthorization) {
+      configs[keyId].lastAuthorization = existing.lastAuthorization;
+    }
+    writeConfigs(configs);
+    const storedConfig = sanitizeConfig(configs[keyId]);
+    res.status(201).json({ message: "Configuration stored.", config: storedConfig });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to persist configuration." });
+  }
+});
+
+app.get("/api/authorize", (req, res) => {
+  const { keyId } = req.query;
+  if (typeof keyId !== "string" || keyId.trim() === "") {
+    return res.status(400).send("keyId is required.");
+  }
+
+  const configs = readConfigs();
+  const config = configs[keyId];
+  if (!config) {
+    return res.status(404).send("Configuration not found.");
+  }
+
+  const state = `state-${randomUUID()}`;
+  const code = `code-${randomUUID()}`;
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + AUTHORIZATION_EXPIRY_MS);
+
+  config.lastAuthorization = {
+    state,
+    code,
+    issuedAt: issuedAt.toISOString(),
+    expiresAt: expiresAt.toISOString()
+  };
+  writeConfigs(configs);
+
+  const referer = req.get("referer");
+  let origin;
+  try {
+    origin = referer ? new URL(referer).origin : undefined;
+  } catch {
+    origin = undefined;
+  }
+  const redirectBase = origin ?? FRONTEND_FALLBACK;
+  const redirectUrl = `${redirectBase}/redirect-back-endpoint?code=${encodeURIComponent(
+    code
+  )}&state=${encodeURIComponent(state)}&keyId=${encodeURIComponent(keyId)}`;
+  res.redirect(302, redirectUrl);
+});
+
+app.post("/api/b2b_token", (req, res) => {
+  const { keyId } = req.body ?? {};
+  if (!keyId) {
+    return res.status(400).json({ message: "keyId is required." });
+  }
+  const configs = readConfigs();
+  const config = configs[keyId];
+  if (!config) {
+    return res.status(404).json({ message: "Configuration not found." });
+  }
+
+  const now = new Date();
+  const assertionExpiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+  const tokenExpiresAt = new Date(now.getTime() + 60 * 60 * 1000);
+
+  res.json({
+    assertion: `mock-assertion-${keyId}-${randomUUID()}`,
+    assertionExpiresAt: assertionExpiresAt.toISOString(),
+    token: `mock-b2b-token-${keyId}-${randomUUID()}`,
+    tokenExpiresAt: tokenExpiresAt.toISOString(),
+    issuedAt: now.toISOString(),
+    environment: config.environment
+  });
+});
+
+app.post("/api/user_token", (req, res) => {
+  const { keyId, code, state } = req.body ?? {};
+  if (!keyId || !code) {
+    return res.status(400).json({ message: "keyId and code are required." });
+  }
+  const configs = readConfigs();
+  const config = configs[keyId];
+  if (!config) {
+    return res.status(404).json({ message: "Configuration not found." });
+  }
+
+  const authorization = config.lastAuthorization;
+  if (
+    !authorization ||
+    authorization.code !== code ||
+    (state && authorization.state !== state) ||
+    (authorization.expiresAt && Date.now() > Date.parse(authorization.expiresAt))
+  ) {
+    return res.status(400).json({ message: "Authorization code is invalid or expired." });
+  }
+
+  delete config.lastAuthorization;
+  writeConfigs(configs);
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 15 * 60 * 1000);
+
+  res.json({
+    token: `mock-user-token-${keyId}-${randomUUID()}`,
+    tokenExpiresAt: expiresAt.toISOString(),
+    receivedCode: code
+  });
+});
+
+app.post("/api/final_token_exchange", (req, res) => {
+  const { keyId, userToken, b2bToken } = req.body ?? {};
+  if (!keyId || !userToken || !b2bToken) {
+    return res
+      .status(400)
+      .json({ message: "keyId, userToken, and b2bToken are required." });
+  }
+  const configs = readConfigs();
+  if (!configs[keyId]) {
+    return res.status(404).json({ message: "Configuration not found." });
+  }
+
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+  res.json({
+    finalToken: `mock-final-token-${keyId}-${randomUUID()}`,
+    expiresAt
+  });
+});
+
+app.use(express.static(DIST_PATH));
+
+app.get("/redirect-back-endpoint", (_req, res) => {
+  const distIndex = path.join(DIST_PATH, "index.html");
+  if (fs.exists(distIndex, () => {}) && fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
+  return res.sendFile(INDEX_HTML);
+});
+
+app.get("*", (_req, res) => {
+  const distIndex = path.join(DIST_PATH, "index.html");
+  if (fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
+  return res.sendFile(INDEX_HTML);
+});
+
+const port = process.env.PORT ?? 3001;
+app.listen(port, () => {
+  console.log(`Server listening on http://localhost:${port}`);
+});
