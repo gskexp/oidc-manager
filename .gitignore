@@ -1,9 +1,10 @@
 .idea/
 *.iml
 node_modules/
-```// filepath: /Users/gurjiv/Projects/oidc-manager/.gitignore
-.idea/
-*.iml
-node_modules/
 .github
 .vite
+package-lock.json
+dist/
+.env
+.DS_Store
+npm-debug.log*

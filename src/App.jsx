@@ -13,6 +13,8 @@ const initialWorkflow = {
   otac: "",
   clientId: "",
   audience: "",
+  attendedClientId: "",
+  attendedClientSecret: "",
   b2bAssertion: "",
   b2bAssertionExpiresAt: "",
   b2bToken: "",
@@ -212,6 +214,10 @@ const App = () => {
       setError("Select a configuration before requesting an authorization code.");
       return;
     }
+    if (!workflowState.attendedClientId || !workflowState.attendedClientSecret) {
+      setError("Attended client credentials are required before starting Step 3.");
+      return;
+    }
     setError("");
     dispatch({
       type: "setMultiple",
@@ -280,6 +286,10 @@ const App = () => {
       setError("An authorization code is required before exchanging for a user token.");
       return;
     }
+    if (!workflowState.attendedClientId || !workflowState.attendedClientSecret) {
+      setError("Attended client credentials are required before exchanging for a user token.");
+      return;
+    }
     setIsSubmitting(true);
     setError("");
     try {
@@ -289,7 +299,9 @@ const App = () => {
         body: JSON.stringify({
           keyId: workflowState.keyId,
           code: workflowState.authCode,
-          state: workflowState.redirectState
+          state: workflowState.redirectState,
+          attendedClientId: workflowState.attendedClientId,
+          attendedClientSecret: workflowState.attendedClientSecret
         })
       });
       if (!response.ok) {
@@ -452,7 +464,7 @@ const App = () => {
               className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:opacity-60"
               disabled={isSubmitting}
             >
-              Save configuration
+              Register new device
             </button>
           </div>
         </form>
@@ -697,7 +709,12 @@ const App = () => {
                 type="button"
                 onClick={handleAuthorizeRedirect}
                 className="mt-3 rounded-md border border-indigo-400/60 px-3 py-2 text-xs font-medium text-indigo-200 hover:bg-indigo-500/20"
-                disabled={isSubmitting || !workflowState.keyId}
+                disabled={
+                  isSubmitting ||
+                  !workflowState.keyId ||
+                  !workflowState.attendedClientId ||
+                  !workflowState.attendedClientSecret
+                }
               >
                 Redirect for login
               </button>
@@ -715,7 +732,13 @@ const App = () => {
                 type="button"
                 onClick={handleUserToken}
                 className="mt-3 rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-60"
-                disabled={isSubmitting || !workflowState.keyId || !workflowState.authCode}
+                disabled={
+                  isSubmitting ||
+                  !workflowState.keyId ||
+                  !workflowState.authCode ||
+                  !workflowState.attendedClientId ||
+                  !workflowState.attendedClientSecret
+                }
               >
                 Exchange for user token
               </button>

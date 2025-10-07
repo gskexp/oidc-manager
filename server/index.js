@@ -3,12 +3,14 @@ import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
+import { registerDeviceWithJws } from "./services/registerDevice.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CONFIG_PATH = path.join(__dirname, "keys", "config.json");
-const DIST_PATH = path.join(__dirname, "dist");
-const INDEX_HTML = path.join(__dirname, "index.html");
+const ROOT_DIR = path.join(__dirname, "..");
+const CONFIG_PATH = path.join(ROOT_DIR, "keys", "config.json");
+const DIST_PATH = path.join(ROOT_DIR, "dist");
+const INDEX_HTML = path.join(ROOT_DIR, "index.html");
 const FRONTEND_FALLBACK = process.env.FRONTEND_BASE_URL ?? "http://localhost:8090";
 const AUTHORIZATION_EXPIRY_MS = 5 * 60 * 1000;
 
@@ -40,6 +42,14 @@ const sanitizeConfig = (config) => {
   return rest;
 };
 
+const serveSpa = (_req, res) => {
+  const distIndex = path.join(DIST_PATH, "index.html");
+  if (fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
+  return res.sendFile(INDEX_HTML);
+};
+
 app.get("/api/configs", (_req, res) => {
   try {
     const configs = readConfigs();
@@ -51,10 +61,31 @@ app.get("/api/configs", (_req, res) => {
   }
 });
 
-app.post("/api/register-config", (req, res) => {
+app.post("/api/register-config", async (req, res) => {
   const { keyId, environment, organisationId, otac, clientId, audience } = req.body ?? {};
   if (!keyId || !environment || !organisationId || !otac || !clientId || !audience) {
     return res.status(400).json({ message: "Missing required fields." });
+  }
+
+  let jwsResult;
+  try {
+    jwsResult = await registerDeviceWithJws({
+      keyId,
+      environment,
+      organisationId,
+      otac,
+      clientId,
+      audience
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "JWS registration failed." });
+  }
+
+  if (!jwsResult || jwsResult.status !== 200) {
+    return res
+      .status(jwsResult?.status ?? 502)
+      .json({ message: jwsResult?.message ?? "JWS registration failed." });
   }
 
   try {
@@ -148,10 +179,14 @@ app.post("/api/b2b_token", (req, res) => {
 });
 
 app.post("/api/user_token", (req, res) => {
-  const { keyId, code, state } = req.body ?? {};
+  const { keyId, code, state, attendedClientId, attendedClientSecret } = req.body ?? {};
   if (!keyId || !code) {
     return res.status(400).json({ message: "keyId and code are required." });
   }
+  if (!attendedClientId || !attendedClientSecret) {
+    return res.status(400).json({ message: "Attended client credentials are required." });
+  }
+
   const configs = readConfigs();
   const config = configs[keyId];
   if (!config) {
@@ -202,22 +237,8 @@ app.post("/api/final_token_exchange", (req, res) => {
 });
 
 app.use(express.static(DIST_PATH));
-
-app.get("/redirect-back-endpoint", (_req, res) => {
-  const distIndex = path.join(DIST_PATH, "index.html");
-  if (fs.exists(distIndex, () => {}) && fs.existsSync(distIndex)) {
-    return res.sendFile(distIndex);
-  }
-  return res.sendFile(INDEX_HTML);
-});
-
-app.get("*", (_req, res) => {
-  const distIndex = path.join(DIST_PATH, "index.html");
-  if (fs.existsSync(distIndex)) {
-    return res.sendFile(distIndex);
-  }
-  return res.sendFile(INDEX_HTML);
-});
+app.get("/redirect-back-endpoint", serveSpa);
+app.get("*", serveSpa);
 
 const port = process.env.PORT ?? 3001;
 app.listen(port, () => {
