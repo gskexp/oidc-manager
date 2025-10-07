@@ -68,6 +68,11 @@ const workflowReducer = (state, action) => {
   }
 };
 
+const LOCAL_STORAGE_KEYS = {
+  envFilter: "oidc-manager.envFilter",
+  searchTerm: "oidc-manager.searchTerm"
+};
+
 const App = () => {
   const [view, setView] = useState("landing");
   const [configs, setConfigs] = useState([]);
@@ -75,6 +80,73 @@ const App = () => {
   const [error, setError] = useState("");
   const [workflowState, dispatch] = useReducer(workflowReducer, initialWorkflow);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+    try {
+      return localStorage.getItem(LOCAL_STORAGE_KEYS.searchTerm) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [envFilter, setEnvFilter] = useState(() => {
+    if (typeof window === "undefined") {
+      return "all";
+    }
+    try {
+      return localStorage.getItem(LOCAL_STORAGE_KEYS.envFilter) ?? "all";
+    } catch {
+      return "all";
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.searchTerm, searchTerm);
+    } catch {
+      /* ignore */
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.envFilter, envFilter);
+    } catch {
+      /* ignore */
+    }
+  }, [envFilter]);
+
+  const filteredConfigs = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return configs.filter((config) => {
+      const matchesEnv = envFilter === "all" || config.environment === envFilter;
+      if (!matchesEnv) {
+        return false;
+      }
+      if (!term) {
+        return true;
+      }
+      const haystack = [
+        config.keyId,
+        config.environment,
+        config.organisationId,
+        config.otac,
+        config.clientId,
+        config.audience
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [configs, envFilter, searchTerm]);
 
   const loadConfigs = async () => {
     setLoadingConfigs(true);
@@ -467,25 +539,55 @@ const App = () => {
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/40">
         <header className="border-b border-slate-800 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-100">Registered devices</h2>
-            <button
-              type="button"
-              onClick={() => setView("workflow")}
-              className="rounded-md border border-indigo-400/50 px-3 py-1.5 text-sm text-indigo-300 hover:bg-indigo-500/20"
-            >
-              Go to workflow
-            </button>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-100">Registered devices</h2>
+              <p className="text-xs text-slate-500">
+                Filter by environment or search across device fields.
+              </p>
+            </div>
+            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:justify-end">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search devices…"
+                className="w-full md:w-64 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+              <select
+                value={envFilter}
+                onChange={(event) => setEnvFilter(event.target.value)}
+                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              >
+                <option value="all">All environments</option>
+                {ENVIRONMENTS.map((env) => (
+                  <option key={env.id} value={env.id}>
+                    {env.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setView("workflow")}
+                className="rounded-md border border-indigo-400/50 px-3 py-1.5 text-sm text-indigo-300 hover:bg-indigo-500/20"
+              >
+                Go to workflow
+              </button>
+            </div>
           </div>
         </header>
         <div className="divide-y divide-slate-800">
           {loadingConfigs && (
             <p className="px-6 py-4 text-sm text-slate-400">Loading configurations…</p>
           )}
-          {!loadingConfigs && configs.length === 0 && (
-            <p className="px-6 py-4 text-sm text-slate-400">No devices registered yet.</p>
+          {!loadingConfigs && filteredConfigs.length === 0 && (
+            <p className="px-6 py-4 text-sm text-slate-400">
+              {configs.length === 0
+                ? "No devices registered yet."
+                : "No devices match the current filters."}
+            </p>
           )}
-          {configs.map((config) => (
+          {filteredConfigs.map((config) => (
             <button
               key={config.keyId}
               type="button"
