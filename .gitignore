@@ -9,3 +9,5 @@ dist/
 .DS_Store
 npm-debug.log*
 .DS_Store
+keys/
+*.log
