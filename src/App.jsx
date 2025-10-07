@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useState } from "react";
-
-const ENVIRONMENTS = [
-  { id: "dev", label: "Development", issuer: "https://dev-issuer.example.com" },
-  { id: "test", label: "Staging", issuer: "https://staging-issuer.example.com" },
-  { id: "vendor", label: "Production", issuer: "https://prod-issuer.example.com" }
-];
+import { ENVIRONMENTS } from "../shared/environments.js";
 
 const initialWorkflow = {
   environment: "",

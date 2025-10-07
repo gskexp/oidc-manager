@@ -4,6 +4,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { registerDeviceWithJws } from "./services/registerDevice.js";
+import { ENVIRONMENT_IDS } from "../shared/environments.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,9 @@ app.post("/api/register-config", async (req, res) => {
   const { keyId, environment, organisationId, otac, clientId, audience } = req.body ?? {};
   if (!keyId || !environment || !organisationId || !otac || !clientId || !audience) {
     return res.status(400).json({ message: "Missing required fields." });
+  }
+  if (!ENVIRONMENT_IDS.has(environment)) {
+    return res.status(400).json({ message: "Unknown environment." });
   }
 
   let jwsResult;
