@@ -1,79 +1,93 @@
 # OIDC Token Workflow Simulator
 
-Single-page React application backed by an Express.js mock server for simulating OIDC device workflows. Device registrations persist on the server in `./keys/config.json`.
+Single-page React application backed by an Express.js mock server that simulates OIDC attended and unattended device workflows. Device registrations are persisted on the server in `./keys/config.json`.
 
-## Tech Stack
+## Architecture
 
-- React (Vite) + Tailwind CSS
-- Express.js backend
-- File-based persistence in `keys/config.json`
+- **Frontend:** [`src/App.jsx`](src/App.jsx) rendered through Vite with Tailwind CSS utilities loaded from [`src/index.css`](src/index.css).
+- **Backend:** [`server/index.js`](server/index.js) exposing mock OIDC endpoints and file-based persistence.
+- **Shared constants:** [`shared/environments.js`](shared/environments.js).
 
 ## Project Structure
 
-```
-/oidc-manager
+```text
+/
+├── index.html
 ├── keys/
-│   ├── config.json
-│   ├── id_rsa_priv.pem       # generated
-│   └── id_rsa_pub.pem        # generated
+│   └── config.json        # Created automatically if missing
+├── server/
+│   ├── index.js
+│   ├── routes/
+│   │   └── mockAuthorize.js
+│   └── services/
+│       └── registerDevice.js
+├── shared/
+│   └── environments.js
 ├── src/
 │   ├── App.jsx
+│   ├── components/
+│   ├── hooks/
 │   ├── index.css
 │   └── main.jsx
-├── server.js
-├── generate_keys.js
 ├── package.json
-└── vite.config.js
+├── postcss.config.js
+└── tailwind.config.js
 ```
 
-## Setup
+## Prerequisites
 
-1. Clone or open the repository.
-2. Ensure Node.js ≥ 18 is available.
-3. Generate RSA keys (one-time):
+- Node.js 18 or newer.
+- Pre-populated `node_modules/` directory (no `npm install` required).
+
+## Initial Setup
+
+1. Generate the RSA key pair (one-time step):
    ```bash
    node generate_keys.js
    ```
+2. Ensure `keys/config.json` exists (the server will create it otherwise).
 
-## Running
+## Development Workflow
 
-> `node_modules` is pre-populated—do **not** run `npm install`.
+1. Start the Express backend:
+   ```bash
+   npm run server
+   ```
+   The API listens on `http://localhost:3001`.
 
-### Start the Express backend
+2. In a separate terminal, start the Vite dev server:
+   ```bash
+   npm run dev
+   ```
+   The SPA runs on `http://localhost:8090` and proxies `/api` requests to the backend.
+
+## Production Build
 
 ```bash
-node server.js
+npm run build
+npm run preview
 ```
 
-The API runs on [http://localhost:3001](http://localhost:3001).
+`npm run build` outputs the SPA into `dist/` which is served by `server/index.js` when running in production mode.
 
-### Start the Vite dev server
+## Mock API Endpoints
 
-```bash
-npm run dev
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/configs` | GET | Returns all persisted device configurations. |
+| `/api/register-config` | POST | Registers or updates a device configuration. |
+| `/api/b2b_token` | POST | Issues a mock unattended (B2B) token. |
+| `/api/user_token` | POST | Exchanges an authorization code for a mock user token. |
+| `/api/final_token_exchange` | POST | Produces a final combined token from B2B and user tokens. |
+| `/api/authorize` | GET | Simulates the OIDC authorization redirect, returning to `/redirect-back-endpoint`. |
+| `/redirect-back-endpoint` | GET | Serves the SPA so [`useWorkflow`](src/hooks/useWorkflow.js) can capture `code` and `state`. |
+| `*` | GET | Catch-all that serves the SPA for client-side routing. |
 
-The SPA runs on [http://localhost:5173](http://localhost:5173) and proxies API calls to the backend.
+## Key Frontend Flows
 
-## Available Scripts
+- The landing page loads configurations via [`useConfigs`](src/hooks/useConfigs.js) and persists search/filter state between sessions.
+- The workflow view orchestrates the attended and unattended steps through [`useWorkflow`](src/hooks/useWorkflow.js), capturing redirect parameters and calling backend endpoints.
 
-| Command             | Description                          |
-| ------------------- | ------------------------------------ |
-| `node server.js`    | Launches the Express backend.        |
-| `node generate_keys.js` | Generates RSA key pair in `keys/`. |
-| `npm run dev`       | Starts the Vite dev server.          |
-| `npm run build`     | Builds the frontend for production.  |
-| `npm run preview`   | Serves the production build locally. |
+## Docker
 
-## Key Endpoints
-
-| Endpoint                    | Method | Purpose                          |
-| --------------------------- | ------ | -------------------------------- |
-| `/api/configs`              | GET    | List registered device configs.  |
-| `/api/register-config`      | POST   | Create/update a configuration.   |
-| `/api/b2b_token`            | POST   | Mock unattended token issuance.  |
-| `/api/user_token`           | POST   | Mock auth-code token exchange.   |
-| `/api/final_token_exchange` | POST   | Mock final token exchange.       |
-| `/redirect-back-endpoint`   | GET    | Serves SPA for redirect handling.|
-
-Configuration changes are persisted in `keys/config.json`, surviving restarts and refreshes.
+A multi-stage [`Dockerfile`](Dockerfile) installs dependencies, builds the SPA, prunes dev dependencies, and packages the app for production with the Express server listening on port `8090`.
