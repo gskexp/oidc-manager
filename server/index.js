@@ -164,12 +164,23 @@ app.post("/api/b2b_token", (req, res) => {
 });
 
 app.post("/api/user_token", (req, res) => {
-  const { keyId, code, state, attendedClientId, attendedClientSecret } = req.body ?? {};
+  const {
+    keyId,
+    code,
+    state,
+    attendedClientId,
+    attendedClientSecret,
+    requestState,
+    nonce
+  } = req.body ?? {};
   if (!keyId || !code) {
     return res.status(400).json({ message: "keyId and code are required." });
   }
   if (!attendedClientId || !attendedClientSecret) {
     return res.status(400).json({ message: "Attended client credentials are required." });
+  }
+  if (!requestState || !nonce) {
+    return res.status(400).json({ message: "State and nonce are required." });
   }
 
   const configs = readConfigs();
@@ -197,7 +208,9 @@ app.post("/api/user_token", (req, res) => {
   res.json({
     token: `mock-user-token-${keyId}-${randomUUID()}`,
     tokenExpiresAt: expiresAt.toISOString(),
-    receivedCode: code
+    receivedCode: code,
+    requestState,
+    nonce
   });
 });
 

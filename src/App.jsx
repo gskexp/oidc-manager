@@ -34,7 +34,8 @@ const App = () => {
     handleClearRedirect,
     handleClearWorkflowState,
     handleCopy,
-    resetWorkflow
+    resetWorkflow,
+    regenerateStateNonce
   } = useWorkflow({
     configs,
     loadingConfigs,
@@ -125,6 +126,7 @@ const App = () => {
             onBackToLanding={goToLanding}
             onUpdateField={updateField}
             onCopy={handleCopy}
+            onRegenerateStateNonce={regenerateStateNonce}
           />
         )}
       </main>

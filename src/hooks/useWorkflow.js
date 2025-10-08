@@ -1,7 +1,20 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { ENVIRONMENTS } from "../../shared/environments.js";
 
-const initialWorkflow = {
+const ALPHANUMERIC_CHARS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+const generateRandomId = () =>
+  Array.from({ length: 10 }, () =>
+    ALPHANUMERIC_CHARS[Math.floor(Math.random() * ALPHANUMERIC_CHARS.length)]
+  ).join("");
+
+const createRandomSeed = () => ({
+  userStateInput: generateRandomId(),
+  nonceInput: generateRandomId()
+});
+
+const baseWorkflow = {
   environment: "",
   keyId: "",
   organisationId: "",
@@ -19,7 +32,9 @@ const initialWorkflow = {
   finalToken: "",
   finalTokenExpiresAt: "",
   redirectState: "",
-  authCode: ""
+  authCode: "",
+  userStateInput: "",
+  nonceInput: ""
 };
 
 const SESSION_STORAGE_KEYS = {
@@ -30,7 +45,8 @@ const workflowReducer = (state, action) => {
   switch (action.type) {
     case "hydrateConfig":
       return {
-        ...initialWorkflow,
+        ...baseWorkflow,
+        ...(action.randomSeed ?? createRandomSeed()),
         environment: action.payload.environment ?? "",
         keyId: action.payload.keyId ?? "",
         organisationId: action.payload.organisationId ?? "",
@@ -59,7 +75,7 @@ const workflowReducer = (state, action) => {
         authCode: action.payload.code ?? ""
       };
     case "reset":
-      return { ...initialWorkflow };
+      return { ...baseWorkflow, ...(action.randomSeed ?? createRandomSeed()) };
     default:
       return state;
   }
@@ -113,7 +129,11 @@ const clearAttendedCredentialsForKey = (keyId) => {
 };
 
 export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadConfigs }) => {
-  const [workflowState, dispatch] = useReducer(workflowReducer, initialWorkflow);
+  const [workflowState, dispatch] = useReducer(
+    workflowReducer,
+    undefined,
+    () => ({ ...baseWorkflow, ...createRandomSeed() })
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedEnvironment = useMemo(() => {
@@ -168,7 +188,11 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
     if (keyIdParam) {
       const matchingConfig = configs.find((cfg) => cfg.keyId === keyIdParam);
       if (matchingConfig) {
-        dispatch({ type: "hydrateConfig", payload: matchingConfig });
+        dispatch({
+          type: "hydrateConfig",
+          payload: matchingConfig,
+          randomSeed: createRandomSeed()
+        });
         hydrateAttendedCredentials(keyIdParam);
         setView("workflow");
       } else if (configs.length > 0) {
@@ -187,7 +211,11 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
 
   const handleSelectConfig = useCallback(
     (config) => {
-      dispatch({ type: "hydrateConfig", payload: config });
+      dispatch({
+        type: "hydrateConfig",
+        payload: config,
+        randomSeed: createRandomSeed()
+      });
       hydrateAttendedCredentials(config.keyId);
       setError("");
       setView("workflow");
@@ -235,7 +263,11 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
           throw new Error(body.message ?? `HTTP ${response.status}`);
         }
         await loadConfigs();
-        dispatch({ type: "hydrateConfig", payload });
+        dispatch({
+          type: "hydrateConfig",
+          payload,
+          randomSeed: createRandomSeed()
+        });
         dispatch({
           type: "setMultiple",
           payload: { attendedClientId: "", attendedClientSecret: "" }
@@ -273,7 +305,9 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
         redirectState: "",
         authCode: "",
         userToken: "",
-        userTokenExpiresAt: ""
+        userTokenExpiresAt: "",
+        userStateInput: generateRandomId(),
+        nonceInput: generateRandomId()
       }
     });
     const params = new URLSearchParams({
@@ -364,6 +398,8 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
           keyId: workflowState.keyId,
           code: workflowState.authCode,
           state: workflowState.redirectState,
+          requestState: workflowState.userStateInput,
+          nonce: workflowState.nonceInput,
           attendedClientId: workflowState.attendedClientId,
           attendedClientSecret: workflowState.attendedClientSecret
         })
@@ -464,7 +500,9 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
         finalToken: "",
         finalTokenExpiresAt: "",
         redirectState: "",
-        authCode: ""
+        authCode: "",
+        userStateInput: generateRandomId(),
+        nonceInput: generateRandomId()
       }
     });
     setError("");
@@ -474,7 +512,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
     if (workflowState.keyId) {
       clearAttendedCredentialsForKey(workflowState.keyId);
     }
-    dispatch({ type: "reset" });
+    dispatch({ type: "reset", randomSeed: createRandomSeed() });
   }, [workflowState.keyId]);
 
   const updateField = useCallback((field, value) => {
@@ -494,6 +532,10 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
     }
   }, []);
 
+  const regenerateStateNonce = useCallback(() => {
+    dispatch({ type: "setMultiple", payload: createRandomSeed() });
+  }, []);
+
   return {
     workflowState,
     selectedEnvironment,
@@ -508,6 +550,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
     handleClearRedirect,
     handleClearWorkflowState,
     handleCopy,
-    resetWorkflow
+    resetWorkflow,
+    regenerateStateNonce
   };
 };
