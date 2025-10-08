@@ -38,7 +38,8 @@ const baseWorkflow = {
 };
 
 const SESSION_STORAGE_KEYS = {
-  attendedCredentials: "oidc-manager.session.attendedCredentials"
+  attendedCredentials: "oidc-manager.session.attendedCredentials",
+  workflowSnapshots: "oidc-manager.session.workflowSnapshots"
 };
 
 const workflowReducer = (state, action) => {
@@ -128,6 +129,59 @@ const clearAttendedCredentialsForKey = (keyId) => {
   }
 };
 
+const loadWorkflowSnapshotForKey = (keyId) => {
+  if (typeof window === "undefined" || !keyId) {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.workflowSnapshots);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return parsed?.[keyId] ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const saveWorkflowSnapshotForKey = (keyId, snapshot) => {
+  if (typeof window === "undefined" || !keyId) {
+    return;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.workflowSnapshots);
+    const data = raw ? JSON.parse(raw) : {};
+    data[keyId] = snapshot;
+    window.sessionStorage.setItem(
+      SESSION_STORAGE_KEYS.workflowSnapshots,
+      JSON.stringify(data)
+    );
+  } catch {
+    /* ignore */
+  }
+};
+
+const clearWorkflowSnapshotForKey = (keyId) => {
+  if (typeof window === "undefined" || !keyId) {
+    return;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEYS.workflowSnapshots);
+    if (!raw) {
+      return;
+    }
+    const data = JSON.parse(raw);
+    delete data[keyId];
+    window.sessionStorage.setItem(
+      SESSION_STORAGE_KEYS.workflowSnapshots,
+      JSON.stringify(data)
+    );
+  } catch {
+    /* ignore */
+  }
+};
+
 export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadConfigs }) => {
   const [workflowState, dispatch] = useReducer(
     workflowReducer,
@@ -172,6 +226,13 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
   }, [workflowState.keyId, workflowState.attendedClientId, workflowState.attendedClientSecret]);
 
   useEffect(() => {
+    if (!workflowState.keyId) {
+      return;
+    }
+    saveWorkflowSnapshotForKey(workflowState.keyId, workflowState);
+  }, [workflowState]);
+
+  useEffect(() => {
     if (loadingConfigs) {
       return;
     }
@@ -194,6 +255,10 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
           randomSeed: createRandomSeed()
         });
         hydrateAttendedCredentials(keyIdParam);
+        const storedWorkflow = loadWorkflowSnapshotForKey(keyIdParam);
+        if (storedWorkflow) {
+          dispatch({ type: "setMultiple", payload: storedWorkflow });
+        }
         setView("workflow");
       } else if (configs.length > 0) {
         setError("Returned configuration was not found. Please register or select it manually.");
@@ -217,6 +282,10 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
         randomSeed: createRandomSeed()
       });
       hydrateAttendedCredentials(config.keyId);
+      const storedWorkflow = loadWorkflowSnapshotForKey(config.keyId);
+      if (storedWorkflow) {
+        dispatch({ type: "setMultiple", payload: storedWorkflow });
+      }
       setError("");
       setView("workflow");
     },
@@ -273,6 +342,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
           payload: { attendedClientId: "", attendedClientSecret: "" }
         });
         clearAttendedCredentialsForKey(payload.keyId);
+        clearWorkflowSnapshotForKey(payload.keyId);
         setView("workflow");
         form.reset();
       } catch (registerError) {
@@ -295,10 +365,18 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
       return;
     }
     setError("");
-    saveAttendedCredentialsForKey(workflowState.keyId, {
-      attendedClientId: workflowState.attendedClientId,
-      attendedClientSecret: workflowState.attendedClientSecret
-    });
+    const nextUserState = generateRandomId();
+    const nextNonce = generateRandomId();
+    const snapshot = {
+      ...workflowState,
+      redirectState: "",
+      authCode: "",
+      userToken: "",
+      userTokenExpiresAt: "",
+      userStateInput: nextUserState,
+      nonceInput: nextNonce
+    };
+    saveWorkflowSnapshotForKey(workflowState.keyId, snapshot);
     dispatch({
       type: "setMultiple",
       payload: {
@@ -306,8 +384,8 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
         authCode: "",
         userToken: "",
         userTokenExpiresAt: "",
-        userStateInput: generateRandomId(),
-        nonceInput: generateRandomId()
+        userStateInput: nextUserState,
+        nonceInput: nextNonce
       }
     });
     const params = new URLSearchParams({
@@ -316,10 +394,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
     });
     window.location.href = `/api/authorize?${params.toString()}`;
   }, [
-    workflowState.keyId,
-    workflowState.environment,
-    workflowState.attendedClientId,
-    workflowState.attendedClientSecret,
+    workflowState,
     setError
   ]);
 
@@ -485,6 +560,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
   const handleClearWorkflowState = useCallback(() => {
     if (workflowState.keyId) {
       clearAttendedCredentialsForKey(workflowState.keyId);
+      clearWorkflowSnapshotForKey(workflowState.keyId);
     }
     dispatch({
       type: "setMultiple",
@@ -511,6 +587,7 @@ export const useWorkflow = ({ configs, loadingConfigs, setError, setView, loadCo
   const resetWorkflow = useCallback(() => {
     if (workflowState.keyId) {
       clearAttendedCredentialsForKey(workflowState.keyId);
+      clearWorkflowSnapshotForKey(workflowState.keyId);
     }
     dispatch({ type: "reset", randomSeed: createRandomSeed() });
   }, [workflowState.keyId]);

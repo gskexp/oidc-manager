@@ -217,76 +217,51 @@ export const WorkflowView = ({
             <p className="mt-1 text-xs text-slate-400">
               Provide the attended client ID and secret before launching the redirect or exchanging the authorization code.
             </p>
-            <label
-              className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
-              htmlFor="attended-client-id"
-            >
-              Attended client ID
-            </label>
-            <input
-              id="attended-client-id"
-              value={workflowState.attendedClientId}
-              onChange={(event) => onUpdateField("attendedClientId", event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              placeholder="attended-client-id"
-            />
-
-            <label
-              className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
-              htmlFor="attended-client-secret"
-            >
-              Attended client secret
-            </label>
-            <input
-              id="attended-client-secret"
-              type="password"
-              value={workflowState.attendedClientSecret}
-              onChange={(event) => onUpdateField("attendedClientSecret", event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              placeholder="********"
-            />
+            {/* attended client ID/secret inputs */}
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-900/70 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-100">Request parameters</p>
-              <button
-                type="button"
-                onClick={onRegenerateStateNonce}
-                className="text-xs text-indigo-300 hover:text-indigo-200"
+          {!workflowState.authCode && (
+            <div className="rounded border border-slate-800 bg-slate-900/70 px-4 py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-100">Request parameters</p>
+                <button
+                  type="button"
+                  onClick={onRegenerateStateNonce}
+                  className="text-xs text-indigo-300 hover:text-indigo-200"
+                >
+                  Regenerate
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                These values are included when exchanging for a user token. Defaults are 10-character alphanumeric strings.
+              </p>
+              <label
+                className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                htmlFor="manual-state-input"
               >
-                Regenerate
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-slate-400">
-              These values are included when exchanging for a user token. Defaults are 10-character alphanumeric strings.
-            </p>
-            <label
-              className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
-              htmlFor="manual-state-input"
-            >
-              State
-            </label>
-            <input
-              id="manual-state-input"
-              value={workflowState.userStateInput}
-              onChange={(event) => onUpdateField("userStateInput", event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            />
+                State
+              </label>
+              <input
+                id="manual-state-input"
+                value={workflowState.userStateInput}
+                onChange={(event) => onUpdateField("userStateInput", event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
 
-            <label
-              className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
-              htmlFor="nonce-input"
-            >
-              Nonce
-            </label>
-            <input
-              id="nonce-input"
-              value={workflowState.nonceInput}
-              onChange={(event) => onUpdateField("nonceInput", event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            />
-          </div>
+              <label
+                className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                htmlFor="nonce-input"
+              >
+                Nonce
+              </label>
+              <input
+                id="nonce-input"
+                value={workflowState.nonceInput}
+                onChange={(event) => onUpdateField("nonceInput", event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+            </div>
+          )}
 
           <div className="rounded border border-slate-800 bg-slate-900/60 px-4 py-4">
             <p className="font-medium text-slate-100">Part 1 · Obtain authorization code</p>
