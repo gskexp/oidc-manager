@@ -217,7 +217,34 @@ export const WorkflowView = ({
             <p className="mt-1 text-xs text-slate-400">
               Provide the attended client ID and secret before launching the redirect or exchanging the authorization code.
             </p>
-            {/* attended client ID/secret inputs */}
+              <label
+                  className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                  htmlFor="attended-client-id"
+              >
+                  Attended client ID
+              </label>
+              <input
+                  id="attended-client-id"
+                  value={workflowState.attendedClientId}
+                  onChange={(event) => onUpdateField("attendedClientId", event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  placeholder="attended-client-id"
+              />
+
+              <label
+                  className="mt-3 block text-xs font-medium uppercase tracking-wide text-slate-400"
+                  htmlFor="attended-client-secret"
+              >
+                  Attended client secret
+              </label>
+              <input
+                  id="attended-client-secret"
+                  type="password"
+                  value={workflowState.attendedClientSecret}
+                  onChange={(event) => onUpdateField("attendedClientSecret", event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  placeholder="********"
+              />
           </div>
 
           {!workflowState.authCode && (

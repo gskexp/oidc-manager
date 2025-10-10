@@ -67,6 +67,31 @@ export const useConfigs = ({ setError }) => {
     }
   }, [envFilter]);
 
+  const deleteConfig = useCallback(
+    async (keyId) => {
+      if (!keyId) {
+        return false;
+      }
+      setError("");
+      try {
+        const response = await fetch(`/api/configs/${encodeURIComponent(keyId)}`, {
+          method: "DELETE"
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message ?? `HTTP ${response.status}`);
+        }
+        await loadConfigs();
+        return true;
+      } catch (deleteError) {
+        console.error(deleteError);
+        setError(deleteError.message ?? "Unable to delete configuration.");
+        return false;
+      }
+    },
+    [loadConfigs, setError]
+  );
+
   const filteredConfigs = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return configs.filter((config) => {
@@ -100,6 +125,7 @@ export const useConfigs = ({ setError }) => {
     searchTerm,
     setSearchTerm,
     envFilter,
-    setEnvFilter
+    setEnvFilter,
+    deleteConfig
   };
 };

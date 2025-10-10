@@ -1,8 +1,8 @@
-import express from "express";
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
+import express from "express";
+import { randomUUID } from "crypto";
 import { registerDeviceWithJws } from "./services/registerDevice.js";
 import { ENVIRONMENT_IDS } from "../shared/environments.js";
 import { registerMockAuthorizeRoute } from "./routes/mockAuthorize.js";
@@ -10,6 +10,7 @@ import { registerMockAuthorizeRoute } from "./routes/mockAuthorize.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.join(__dirname, "..");
+const KEYS_DIR = path.join(ROOT_DIR, "keys");
 const CONFIG_PATH = path.join(ROOT_DIR, "keys", "config.json");
 const DIST_PATH = path.join(ROOT_DIR, "dist");
 const INDEX_HTML = path.join(ROOT_DIR, "index.html");
@@ -232,6 +233,21 @@ app.post("/api/final_token_exchange", (req, res) => {
     finalToken: `mock-final-token-${keyId}-${randomUUID()}`,
     expiresAt
   });
+});
+
+app.delete("/api/configs/:keyId", (req, res) => {
+  const keyId = req.params.keyId?.trim();
+  if (!keyId) {
+    return res.status(400).json({ message: "keyId is required." });
+  }
+  const configs = readConfigs();
+  if (!configs[keyId]) {
+    return res.status(404).json({ message: "Configuration not found." });
+  }
+  delete configs[keyId];
+  writeConfigs(configs);
+  deleteKeyArtifacts(keyId);
+  return res.status(204).end();
 });
 
 app.use(express.static(DIST_PATH));

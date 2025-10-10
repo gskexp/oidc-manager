@@ -17,7 +17,8 @@ const App = () => {
     searchTerm,
     setSearchTerm,
     envFilter,
-    setEnvFilter
+    setEnvFilter,
+    deleteConfig
   } = useConfigs({ setError });
 
   const {
@@ -53,6 +54,17 @@ const App = () => {
   const goToWorkflow = () => {
     setError("");
     setView("workflow");
+  };
+
+  const handleDeleteConfig = async (config) => {
+    if (!config?.keyId) {
+      return;
+    }
+    const success = await deleteConfig(config.keyId);
+    if (success && workflowState.keyId === config.keyId) {
+      resetWorkflow();
+      setView("landing");
+    }
   };
 
   return (
@@ -110,6 +122,7 @@ const App = () => {
             isSubmitting={isSubmitting}
             onRegister={handleRegister}
             onSelectConfig={handleSelectConfig}
+            onDeleteConfig={handleDeleteConfig}
             onGoToWorkflow={goToWorkflow}
           />
         ) : (

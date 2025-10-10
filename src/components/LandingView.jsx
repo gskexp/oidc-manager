@@ -12,6 +12,7 @@ export const LandingView = ({
   isSubmitting,
   onRegister,
   onSelectConfig,
+  onDeleteConfig,
   onGoToWorkflow
 }) => (
   <div className="space-y-6">
@@ -115,34 +116,34 @@ export const LandingView = ({
             <h2 className="text-lg font-semibold text-slate-100">Registered devices</h2>
             <p className="text-xs text-slate-500">Filter by environment or search across device fields.</p>
           </div>
-          <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:justify-end">
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search devices…"
-              className="w-full md:w-64 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            />
-            <select
-              value={envFilter}
-              onChange={(event) => setEnvFilter(event.target.value)}
-              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            >
-              <option value="all">All environments</option>
-              {environments.map((env) => (
-                <option key={env.id} value={env.id}>
-                  {env.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={onGoToWorkflow}
-              className="rounded-md border border-indigo-400/50 px-3 py-1.5 text-sm text-indigo-300 hover:bg-indigo-500/20"
-            >
-              Go to workflow
-            </button>
-          </div>
+            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:justify-end">
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search devices…"
+                className="w-full md:w-64 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              />
+              <select
+                value={envFilter}
+                onChange={(event) => setEnvFilter(event.target.value)}
+                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              >
+                <option value="all">All environments</option>
+                {environments.map((env) => (
+                  <option key={env.id} value={env.id}>
+                    {env.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={onGoToWorkflow}
+                className="rounded-md border border-indigo-400/50 px-3 py-1.5 text-sm text-indigo-300 hover:bg-indigo-500/20"
+              >
+                Go to workflow
+              </button>
+            </div>
         </div>
       </header>
       <div className="divide-y divide-slate-800">
@@ -155,10 +156,8 @@ export const LandingView = ({
           </p>
         )}
         {filteredConfigs.map((config) => (
-          <button
+          <div
             key={config.keyId}
-            type="button"
-            onClick={() => onSelectConfig(config)}
             className="flex w-full items-center justify-between px-6 py-4 text-left transition hover:bg-slate-900/80"
           >
             <div>
@@ -167,8 +166,23 @@ export const LandingView = ({
                 {config.environment} · {config.organisationId} · {config.clientId}
               </p>
             </div>
-            <span className="text-xs uppercase tracking-wide text-indigo-300">Open workflow</span>
-          </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onSelectConfig(config)}
+                className="rounded-md border border-indigo-400/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-indigo-200 hover:bg-indigo-500/20"
+              >
+                Open workflow
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteConfig(config)}
+                className="rounded-md border border-rose-500/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-rose-200 hover:bg-rose-500/15"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </section>
