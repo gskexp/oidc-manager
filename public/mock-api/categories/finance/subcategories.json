@@ -1,0 +1,36 @@
+[
+  {
+    "id": "financial-statements",
+    "categoryId": "finance",
+    "name": "Financial Statements",
+    "description": "Core statements for a reporting period.",
+    "reports": [
+      {
+        "id": "profit-and-loss",
+        "name": "Profit and Loss",
+        "description": "Income statement for a period by cost centre.",
+        "reportConfigId": "profit-and-loss"
+      },
+      {
+        "id": "cash-flow",
+        "name": "Cash Flow",
+        "description": "Cash inflows and outflows as at a date.",
+        "reportConfigId": "cash-flow"
+      }
+    ]
+  },
+  {
+    "id": "receivables",
+    "categoryId": "finance",
+    "name": "Receivables",
+    "description": "Outstanding customer balances.",
+    "reports": [
+      {
+        "id": "accounts-receivable-aging",
+        "name": "Accounts Receivable Aging",
+        "description": "Outstanding invoices grouped by age.",
+        "reportConfigId": "accounts-receivable-aging"
+      }
+    ]
+  }
+]

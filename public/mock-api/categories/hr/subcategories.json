@@ -1,0 +1,22 @@
+[
+  {
+    "id": "workforce",
+    "categoryId": "hr",
+    "name": "Workforce",
+    "description": "Headcount and leave across the organisation.",
+    "reports": [
+      {
+        "id": "headcount",
+        "name": "Headcount",
+        "description": "Employee headcount by department as at a date.",
+        "reportConfigId": "headcount"
+      },
+      {
+        "id": "leave-balances",
+        "name": "Leave Balances",
+        "description": "Accrued and taken leave by employee.",
+        "reportConfigId": "leave-balances"
+      }
+    ]
+  }
+]

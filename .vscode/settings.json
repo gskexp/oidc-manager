@@ -1,0 +1,51 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#a98f78",
+    "activityBar.activeBorder": "#15202b",
+    "activityBar.background": "#a98f78",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#c5dacf",
+    "activityBarBadge.foreground": "#15202b",
+    "activityBarTop.activeBackground": "#a98f78",
+    "activityBarTop.activeBorder": "#15202b",
+    "activityBarTop.background": "#a98f78",
+    "activityBarTop.foreground": "#15202b",
+    "activityBarTop.inactiveForeground": "#15202b99",
+    "commandCenter.border": "#e7e7e799",
+    "commandCenter.foreground": "#e7e7e7",
+    "sash.hoverBorder": "#a98f78",
+    "statusBar.background": "#91755d",
+    "statusBar.debuggingBackground": "#91755d",
+    "statusBar.debuggingForeground": "#e7e7e7",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBar.inactiveBackground": "#91755d",
+    "statusBarItem.hoverBackground": "#a98f78",
+    "statusBarItem.remoteBackground": "#324e3f",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#91755d",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#91755d99",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#91755d",
+
+  // Enable format on save globally for the workspace
+  "editor.formatOnSave": true,
+
+  // Set Prettier as the default code formatter
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Automatically run ESLint's auto-fix on save
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Language-specific overrides (optional)
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

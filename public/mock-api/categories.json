@@ -1,0 +1,37 @@
+[
+  {
+    "id": "sales",
+    "name": "Sales",
+    "description": "Revenue, pipeline and customer performance.",
+    "icon": "sales",
+    "accent": "blue"
+  },
+  {
+    "id": "finance",
+    "name": "Finance",
+    "description": "Financial statements, cash and receivables.",
+    "icon": "finance",
+    "accent": "green"
+  },
+  {
+    "id": "operations",
+    "name": "Operations",
+    "description": "Inventory, fulfilment and logistics.",
+    "icon": "operations",
+    "accent": "amber"
+  },
+  {
+    "id": "hr",
+    "name": "HR",
+    "description": "Workforce, headcount and leave.",
+    "icon": "people",
+    "accent": "plum"
+  },
+  {
+    "id": "dev",
+    "name": "Development",
+    "description": "Development resources.",
+    "icon": "people",
+    "accent": "indigo"
+  }
+]

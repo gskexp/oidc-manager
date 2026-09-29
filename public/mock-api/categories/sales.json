@@ -1,0 +1,7 @@
+{
+  "id": "sales",
+  "name": "Sales",
+  "description": "Revenue, pipeline and customer performance.",
+  "icon": "sales",
+  "accent": "blue"
+}

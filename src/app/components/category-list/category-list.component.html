@@ -1,0 +1,39 @@
+<header class="page-header">
+  <h1>Reports</h1>
+  <p class="page-header__description">Choose a category to see its reports.</p>
+</header>
+
+@if (categories.isLoading() && !categories.hasValue()) {
+  <p class="state state--loading" role="status">Loading categories…</p>
+} @else if (categories.error()) {
+  <section class="state state--error" role="alert">
+    <h2>Couldn't load categories</h2>
+    <p>Check your connection and try again.</p>
+    <button type="button" class="btn btn--secondary" (click)="categories.reload()">Retry</button>
+  </section>
+} @else if (categories.hasValue()) {
+  @let list = categories.value();
+  @if (list.length === 0) {
+    <p class="state state--empty">No report categories are available yet.</p>
+  } @else {
+    <ul class="category-grid" role="list">
+      @for (category of list; track category.id) {
+        <li>
+          <a
+            class="category-card card"
+            [routerLink]="['/categories', category.id]"
+            [style.--cat]="accent(category)"
+          >
+            <span class="category-card__icon"><app-icon [name]="category.icon" /></span>
+            <span class="category-card__body">
+              <span class="category-card__name">{{ category.name }}</span>
+              @if (category.description) {
+                <span class="category-card__description">{{ category.description }}</span>
+              }
+            </span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}

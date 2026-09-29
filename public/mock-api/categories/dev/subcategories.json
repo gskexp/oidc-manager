@@ -1,0 +1,22 @@
+[
+  {
+    "id": "javaDevs",
+    "categoryId": "dev",
+    "name": "Java Developers",
+    "description": "Headcount of java developers across the organisation.",
+    "reports": [
+      {
+        "id": "headcount",
+        "name": "Headcount",
+        "description": "Java Developers headcount by department as at a date.",
+        "reportConfigId": "headcount"
+      },
+      {
+        "id": "leave-balances",
+        "name": "Leave Balances",
+        "description": "Accrued and taken leave by employee.",
+        "reportConfigId": "leave-balances"
+      }
+    ]
+  }
+]

@@ -1,24 +1,19 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
 
 describe('App', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [App],
-    })
-      .compileComponents();
-  });
+  it('renders the header and a skip link', async () => {
+    TestBed.configureTestingModule({ imports: [App], providers: [provideRouter([])] });
 
-  it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
 
-  it('should render title', async () => {
-    const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, modular-reporting-app');
+
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.app-header__brand')?.textContent).toContain('Enterprise Reports');
+    expect(el.querySelector('a.skip-link')?.getAttribute('href')).toBe('#main');
+    expect(el.querySelector('.theme-toggle')?.getAttribute('aria-pressed')).toBe('false');
   });
 });

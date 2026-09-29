@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "mock:sync": "node scripts/sync-mock-api.mjs",
+    "mock:check": "node scripts/sync-mock-api.mjs --check"
   },
   "private": true,
   "packageManager": "npm@12.0.2",

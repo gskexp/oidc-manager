@@ -1,0 +1,78 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-header);
+  color: var(--color-on-header);
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.5rem;
+  }
+
+  &__brand {
+    color: inherit;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+
+    &:focus-visible {
+      outline-color: var(--color-on-header);
+    }
+  }
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-on-header) 35%, transparent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-on-header) 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline-color: var(--color-on-header);
+  }
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  padding-block: 1.5rem 3rem;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-link);
+
+  &:focus {
+    top: 0.5rem;
+  }
+}

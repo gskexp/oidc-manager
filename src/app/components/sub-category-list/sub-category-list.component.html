@@ -1,0 +1,76 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a routerLink="/categories">Categories</a></li>
+    <li aria-current="page">{{ category.hasValue() ? category.value().name : 'Category' }}</li>
+  </ol>
+</nav>
+
+@if (loading()) {
+  <p class="state state--loading" role="status">Loading reports…</p>
+} @else if (notFound()) {
+  <section class="state state--empty">
+    <h1>Category not found</h1>
+    <p>We couldn't find a category with the ID “{{ categoryId() }}”.</p>
+    <a class="btn btn--secondary" routerLink="/categories">Browse categories</a>
+  </section>
+} @else if (failed()) {
+  <section class="state state--error" role="alert">
+    <h1>Couldn't load this category</h1>
+    <p>Check your connection and try again.</p>
+    <button type="button" class="btn btn--secondary" (click)="retry()">Retry</button>
+  </section>
+} @else if (category.hasValue() && subCategories.hasValue()) {
+  @let cat = category.value();
+  @let groups = subCategories.value();
+
+  <header class="page-header page-header--category">
+    <span class="page-header__icon"><app-icon [name]="cat.icon" /></span>
+    <div>
+      <h1>{{ cat.name }}</h1>
+      @if (cat.description) {
+        <p class="page-header__description">{{ cat.description }}</p>
+      }
+    </div>
+  </header>
+
+  @if (groups.length === 0) {
+    <p class="state state--empty">There are no reports in this category yet.</p>
+  } @else {
+    <div class="subcategories">
+      @for (group of groups; track group.id) {
+        <section class="subcategory card" [attr.aria-labelledby]="'sub-' + group.id">
+          <header class="subcategory__header">
+            <span class="subcategory__icon"><app-icon [name]="group.icon ?? cat.icon" /></span>
+            <div>
+              <h2 class="subcategory__name" [id]="'sub-' + group.id">{{ group.name }}</h2>
+              @if (group.description) {
+                <p class="subcategory__description">{{ group.description }}</p>
+              }
+            </div>
+          </header>
+
+          @if (group.reports.length === 0) {
+            <p class="state state--empty state--inline">No reports in this group yet.</p>
+          } @else {
+            <ul class="report-list" role="list">
+              @for (report of group.reports; track report.id) {
+                <li>
+                  <a
+                    class="report-link"
+                    [routerLink]="['/reports', report.reportConfigId]"
+                    [queryParams]="{ category: cat.id }"
+                  >
+                    <span class="report-link__name">{{ report.name }}</span>
+                    @if (report.description) {
+                      <span class="report-link__description">{{ report.description }}</span>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </div>
+  }
+}
