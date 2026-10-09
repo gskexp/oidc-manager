@@ -1,0 +1,79 @@
+{
+  "reportConfigId": "headcount",
+  "name": "Headcount",
+  "description": "Employee headcount by department as at a date.",
+  "fields": [
+    {
+      "key": "asAt",
+      "label": "As at date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "departments",
+      "label": "Departments",
+      "type": "multiSelect",
+      "minSelected": 1,
+      "defaultValue": [
+        "finance",
+        "sales",
+        "operations",
+        "hr",
+        "it"
+      ],
+      "options": [
+        {
+          "value": "finance",
+          "label": "Finance"
+        },
+        {
+          "value": "sales",
+          "label": "Sales"
+        },
+        {
+          "value": "operations",
+          "label": "Operations"
+        },
+        {
+          "value": "hr",
+          "label": "Human Resources"
+        },
+        {
+          "value": "it",
+          "label": "Information Technology"
+        }
+      ]
+    },
+    {
+      "key": "employmentType",
+      "label": "Employment type",
+      "type": "select",
+      "options": [
+        {
+          "value": "permanent",
+          "label": "Permanent"
+        },
+        {
+          "value": "contract",
+          "label": "Contract"
+        },
+        {
+          "value": "casual",
+          "label": "Casual"
+        }
+      ],
+      "placeholder": "All types"
+    }
+  ],
+  "columns": [
+    {
+      "key": "department",
+      "label": "Department"
+    },
+    {
+      "key": "headcount",
+      "label": "Headcount",
+      "format": "integer"
+    }
+  ]
+}

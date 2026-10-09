@@ -1,0 +1,84 @@
+{
+  "reportConfigId": "sales-by-region",
+  "name": "Sales by Region",
+  "description": "Compare sales across regions for a single period.",
+  "fields": [
+    {
+      "key": "period",
+      "label": "Reporting period",
+      "type": "dateRange",
+      "required": true,
+      "defaultValue": {
+        "from": "2026-01-01",
+        "to": "2026-06-30"
+      }
+    },
+    {
+      "key": "regions",
+      "label": "Regions",
+      "type": "multiSelect",
+      "minSelected": 2,
+      "maxSelected": 4,
+      "defaultValue": [
+        "north",
+        "south"
+      ],
+      "options": [
+        {
+          "value": "north",
+          "label": "North"
+        },
+        {
+          "value": "south",
+          "label": "South"
+        },
+        {
+          "value": "east",
+          "label": "East"
+        },
+        {
+          "value": "west",
+          "label": "West"
+        }
+      ],
+      "helpText": "Choose between 2 and 4 regions to compare."
+    },
+    {
+      "key": "groupBy",
+      "label": "Group by",
+      "type": "select",
+      "required": true,
+      "defaultValue": "month",
+      "options": [
+        {
+          "value": "week",
+          "label": "Week"
+        },
+        {
+          "value": "month",
+          "label": "Month"
+        },
+        {
+          "value": "quarter",
+          "label": "Quarter"
+        }
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "key": "bucket",
+      "label": "Period",
+      "format": "date"
+    },
+    {
+      "key": "region",
+      "label": "Region"
+    },
+    {
+      "key": "total_amount",
+      "label": "Total sales",
+      "format": "decimal"
+    }
+  ]
+}

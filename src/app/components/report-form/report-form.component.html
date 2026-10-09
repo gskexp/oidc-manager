@@ -1,0 +1,143 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ol>
+    <li><a routerLink="/categories">Categories</a></li>
+    @if (category(); as categoryId) {
+      <li>
+        <a [routerLink]="['/categories', categoryId]">{{ parentName() }}</a>
+      </li>
+    }
+    <li aria-current="page">{{ config.hasValue() ? config.value().name : 'Report' }}</li>
+  </ol>
+</nav>
+
+@if (config.isLoading() && !config.hasValue()) {
+  <p class="state state--loading" role="status">Loading report…</p>
+} @else if (notFound()) {
+  <section class="state state--empty">
+    <h1>Report not found</h1>
+    <p>We couldn't find a report with the ID “{{ reportConfigId() }}”.</p>
+    <a class="btn btn--secondary" routerLink="/categories">Browse categories</a>
+  </section>
+} @else if (config.error()) {
+  <section class="state state--error" role="alert">
+    <h1>Couldn't load this report</h1>
+    <p>Check your connection and try again.</p>
+    <button type="button" class="btn btn--secondary" (click)="config.reload()">Retry</button>
+  </section>
+} @else if (config.hasValue()) {
+  @let report = config.value();
+
+  <header class="page-header page-header--category">
+    <div>
+      <h1>{{ report.name }}</h1>
+      @if (report.description) {
+        <p class="page-header__description">{{ report.description }}</p>
+      }
+    </div>
+  </header>
+
+  <form class="report-form card" [formRoot]="reportForm" [attr.aria-busy]="running()">
+    @if (fields().length === 0) {
+      <p class="state state--empty">This report has no parameters.</p>
+    }
+
+    <div class="report-form__fields">
+      @for (field of fields(); track field.key) {
+        <app-report-field [field]="field" [control]="controlFor(field.key)" />
+      }
+    </div>
+
+    <p class="report-form__legend"><span aria-hidden="true">*</span> Required</p>
+
+    <div class="report-form__actions">
+      <button type="submit" class="btn btn--primary" [disabled]="running()">
+        @if (running()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Running…
+        } @else {
+          Run report
+        }
+      </button>
+      <button type="button" class="btn btn--secondary" [disabled]="running()" (click)="reset()">
+        Reset
+      </button>
+    </div>
+  </form>
+
+  @let state = runState();
+  <div class="report-form__status" aria-live="polite">
+    @if (state.status === 'running') {
+      <p class="state state--loading" role="status">Running report…</p>
+    } @else if (state.status === 'error') {
+      <section class="alert alert--error" role="alert">
+        <h2>Report failed</h2>
+        <p>{{ state.message }}</p>
+      </section>
+    }
+  </div>
+
+  @if (state.status === 'success') {
+    @let result = state.response;
+    <section class="results" aria-labelledby="results-heading">
+      <header class="results__header">
+        <div>
+          <h2 id="results-heading" class="results__title" tabindex="-1" #resultsHeading>
+            Results
+            <span class="results__count">
+              {{ result.rowCount }} {{ result.rowCount === 1 ? 'row' : 'rows' }}
+            </span>
+          </h2>
+          <dl class="results__params">
+            @for (item of state.summary; track item.label) {
+              <div>
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </div>
+            }
+          </dl>
+        </div>
+        @if (canExport) {
+          <button
+            type="button"
+            class="btn btn--secondary"
+            [disabled]="exporting() || result.rowCount === 0"
+            (click)="exportExcel()"
+          >
+            @if (exporting()) {
+              <span class="spinner" aria-hidden="true"></span>
+              Exporting…
+            } @else {
+              Export to Excel
+            }
+          </button>
+        }
+      </header>
+
+      @if (exportError(); as message) {
+        <p class="alert alert--error" role="alert">{{ message }}</p>
+      }
+      @if (result.truncated) {
+        <p class="alert alert--warning" role="status">
+          {{ result.message ?? 'Only the first ' + result.rowCount + ' rows are shown.' }}
+        </p>
+      }
+      @if (!canExport) {
+        <p class="results__note">
+          Excel export is available when the app is connected to the backend.
+        </p>
+      }
+
+      @if (result.rowCount === 0) {
+        <p class="state state--empty">
+          No rows match these parameters. Try a wider date range or fewer filters.
+        </p>
+      } @else {
+        <app-report-results
+          [columns]="state.columns"
+          [rows]="result.rows"
+          [caption]="report.name + ' results'"
+        />
+      }
+    </section>
+  }
+}

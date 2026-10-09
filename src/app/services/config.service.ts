@@ -1,6 +1,6 @@
 import { HttpResourceRef, httpResource } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Category, SubCategory } from '../models';
+import { Category, ReportConfig, SubCategory } from '../models';
 import { ApiUrls } from './api-urls';
 
 /**
@@ -22,12 +22,17 @@ export class ConfigService {
     });
   }
 
-  getSubCategories(
-    categoryId: () => string | undefined,
-  ): HttpResourceRef<SubCategory[] | undefined> {
+  getSubCategories(categoryId: () => string | undefined): HttpResourceRef<SubCategory[] | undefined> {
     return httpResource<SubCategory[]>(() => {
       const id = categoryId();
       return id ? this.urls.subCategories(id) : undefined;
+    });
+  }
+
+  getReportConfig(reportConfigId: () => string | undefined): HttpResourceRef<ReportConfig | undefined> {
+    return httpResource<ReportConfig>(() => {
+      const id = reportConfigId();
+      return id ? this.urls.reportConfig(id) : undefined;
     });
   }
 }

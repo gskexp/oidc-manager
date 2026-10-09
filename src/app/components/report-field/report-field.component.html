@@ -1,0 +1,178 @@
+@let f = field();
+
+@switch (f.type) {
+  @case ('text') {
+    <div class="field">
+      <label class="field__label" [for]="id()">
+        {{ f.label }}
+        @if (f.required) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </label>
+      <input
+        class="field__control"
+        type="text"
+        [id]="id()"
+        [formField]="stringControl()"
+        [attr.placeholder]="f.placeholder ?? null"
+        [attr.aria-required]="f.required || null"
+        [attr.aria-invalid]="showErrors()"
+        [attr.aria-describedby]="describedBy()"
+      />
+      <ng-container *ngTemplateOutlet="messages" />
+    </div>
+  }
+
+  @case ('number') {
+    <div class="field">
+      <label class="field__label" [for]="id()">
+        {{ f.label }}
+        @if (f.required) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </label>
+      <input
+        class="field__control field__control--number"
+        type="number"
+        [id]="id()"
+        [formField]="numberControl()"
+        [attr.step]="f.step ?? null"
+        [attr.placeholder]="f.placeholder ?? null"
+        [attr.aria-required]="f.required || null"
+        [attr.aria-invalid]="showErrors()"
+        [attr.aria-describedby]="describedBy()"
+      />
+      <ng-container *ngTemplateOutlet="messages" />
+    </div>
+  }
+
+  @case ('date') {
+    <div class="field">
+      <label class="field__label" [for]="id()">
+        {{ f.label }}
+        @if (f.required) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </label>
+      <input
+        class="field__control field__control--date"
+        type="date"
+        [id]="id()"
+        [formField]="stringControl()"
+        [attr.min]="f.minDate ?? null"
+        [attr.max]="f.maxDate ?? null"
+        [attr.aria-required]="f.required || null"
+        [attr.aria-invalid]="showErrors()"
+        [attr.aria-describedby]="describedBy()"
+      />
+      <ng-container *ngTemplateOutlet="messages" />
+    </div>
+  }
+
+  @case ('dateRange') {
+    <fieldset class="field field--group" [attr.aria-describedby]="describedBy()">
+      <legend class="field__label">
+        {{ f.label }}
+        @if (f.required) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </legend>
+      <div class="field__range">
+        <div class="field__range-part">
+          <label class="field__sublabel" [for]="id() + '-from'">From</label>
+          <input
+            class="field__control field__control--date"
+            type="date"
+            [id]="id() + '-from'"
+            [formField]="rangeControl().from"
+            [attr.min]="f.minDate ?? null"
+            [attr.max]="f.maxDate ?? null"
+            [attr.aria-required]="f.required || null"
+            [attr.aria-invalid]="showErrors()"
+          />
+        </div>
+        <div class="field__range-part">
+          <label class="field__sublabel" [for]="id() + '-to'">To</label>
+          <input
+            class="field__control field__control--date"
+            type="date"
+            [id]="id() + '-to'"
+            [formField]="rangeControl().to"
+            [attr.min]="f.minDate ?? null"
+            [attr.max]="f.maxDate ?? null"
+            [attr.aria-required]="f.required || null"
+            [attr.aria-invalid]="showErrors()"
+          />
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="messages" />
+    </fieldset>
+  }
+
+  @case ('select') {
+    <div class="field">
+      <label class="field__label" [for]="id()">
+        {{ f.label }}
+        @if (f.required) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </label>
+      <select
+        class="field__control field__control--select"
+        [id]="id()"
+        [formField]="stringControl()"
+        [attr.aria-required]="f.required || null"
+        [attr.aria-invalid]="showErrors()"
+        [attr.aria-describedby]="describedBy()"
+      >
+        <option value="">{{ f.placeholder ?? 'Select…' }}</option>
+        @for (option of f.options; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+      <ng-container *ngTemplateOutlet="messages" />
+    </div>
+  }
+
+  @case ('multiSelect') {
+    <fieldset class="field field--group" [attr.aria-describedby]="describedBy()">
+      <legend class="field__label">
+        {{ f.label }}
+        @if (f.required || (f.minSelected ?? 0) > 0) {
+          <span class="field__required" aria-hidden="true">*</span>
+        }
+      </legend>
+      <div class="field__options">
+        @for (option of f.options; track option.value; let i = $index) {
+          <div class="field__option">
+            <input
+              type="checkbox"
+              [id]="id() + '-' + i"
+              [name]="f.key"
+              [value]="option.value"
+              [checked]="isChecked(option.value)"
+              (change)="toggle(option.value, $any($event.target).checked)"
+              [attr.aria-invalid]="showErrors()"
+              (blur)="markTouched()"
+            />
+            <label [for]="id() + '-' + i">{{ option.label }}</label>
+          </div>
+        }
+      </div>
+      <ng-container *ngTemplateOutlet="messages" />
+    </fieldset>
+  }
+}
+
+<ng-template #messages>
+  @if (f.helpText) {
+    <p class="field__help" [id]="helpId()">{{ f.helpText }}</p>
+  }
+  @if (showErrors()) {
+    <ul class="field__errors" [id]="errorId()" role="list">
+      @for (error of errors(); track error.kind) {
+        <li class="field__error">{{ error.message }}</li>
+      }
+    </ul>
+  }
+</ng-template>

@@ -1,0 +1,80 @@
+{
+  "reportConfigId": "leave-balances",
+  "name": "Leave Balances",
+  "description": "Accrued and taken leave by employee.",
+  "fields": [
+    {
+      "key": "employeeId",
+      "label": "Employee ID",
+      "type": "text",
+      "pattern": "E[0-9]{5}",
+      "placeholder": "E12345",
+      "helpText": "Leave empty to include all employees."
+    },
+    {
+      "key": "department",
+      "label": "Department",
+      "type": "select",
+      "options": [
+        {
+          "value": "finance",
+          "label": "Finance"
+        },
+        {
+          "value": "sales",
+          "label": "Sales"
+        },
+        {
+          "value": "operations",
+          "label": "Operations"
+        },
+        {
+          "value": "hr",
+          "label": "Human Resources"
+        },
+        {
+          "value": "it",
+          "label": "Information Technology"
+        }
+      ],
+      "placeholder": "All departments"
+    },
+    {
+      "key": "minDays",
+      "label": "Minimum balance (days)",
+      "type": "number",
+      "min": 0,
+      "max": 365,
+      "step": 0.5
+    }
+  ],
+  "columns": [
+    {
+      "key": "employee_id",
+      "label": "Employee ID"
+    },
+    {
+      "key": "employee_name",
+      "label": "Name"
+    },
+    {
+      "key": "department",
+      "label": "Department"
+    },
+    {
+      "key": "accrued_days",
+      "label": "Accrued (days)",
+      "format": "decimal"
+    },
+    {
+      "key": "taken_days",
+      "label": "Taken (days)",
+      "format": "decimal"
+    },
+    {
+      "key": "balance_days",
+      "label": "Balance (days)",
+      "format": "decimal"
+    }
+  ]
+}

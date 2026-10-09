@@ -1,0 +1,25 @@
+<div class="table-scroll" tabindex="0" role="region" [attr.aria-label]="caption()">
+  <table class="results">
+    <caption class="visually-hidden">
+      {{
+        caption()
+      }}
+    </caption>
+    <thead>
+      <tr>
+        @for (column of columns(); track $index) {
+          <th scope="col" [class.num]="numeric()[$index]">{{ column.label }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of cells(); track $index) {
+        <tr>
+          @for (cell of row; track $index) {
+            <td [class.num]="numeric()[$index]">{{ cell }}</td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

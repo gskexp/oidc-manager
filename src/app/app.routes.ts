@@ -13,6 +13,11 @@ export const routes: Routes = [
     loadComponent: () => import('./components/sub-category-list/sub-category-list.component').then((m) => m.SubCategoryListComponent),
   },
   {
+    path: 'reports/:reportConfigId',
+    title: 'Report · Reports',
+    loadComponent: () => import('./components/report-form/report-form.component').then((m) => m.ReportFormComponent),
+  },
+  {
     path: '**',
     title: 'Page not found · Reports',
     loadComponent: () => import('./components/not-found/not-found.component').then((m) => m.NotFoundComponent),
