@@ -42,8 +42,40 @@
     }
 
     <div class="report-form__fields">
-      @for (field of fields(); track field.key) {
-        <app-report-field [field]="field" [control]="controlFor(field.key)" />
+      @for (item of items(); track item.kind === 'field' ? item.field.key : item.id) {
+        @if (item.kind === 'field') {
+          <app-report-field [field]="item.field" [control]="controlFor(item.field.key)" />
+        } @else {
+          @let error = choiceError(item.id);
+          <fieldset
+            class="choice"
+            [class.choice--invalid]="error"
+            tabindex="-1"
+            [attr.aria-invalid]="error ? 'true' : null"
+            [attr.aria-describedby]="error ? item.id + '-error' : null"
+          >
+            <legend class="choice__label">
+              {{ item.choice.label }}
+              <span class="choice__required" aria-hidden="true">*</span>
+            </legend>
+            @if (item.choice.helpText) {
+              <p class="choice__help">{{ item.choice.helpText }}</p>
+            }
+            @for (alternative of item.alternatives; track $index; let first = $first) {
+              @if (!first) {
+                <p class="choice__or">or</p>
+              }
+              <div class="choice__alternative">
+                @for (field of alternative; track field.key) {
+                  <app-report-field [field]="field" [control]="controlFor(field.key)" />
+                }
+              </div>
+            }
+            @if (error) {
+              <p class="choice__error" [id]="item.id + '-error'">{{ error }}</p>
+            }
+          </fieldset>
+        }
       }
     </div>
 

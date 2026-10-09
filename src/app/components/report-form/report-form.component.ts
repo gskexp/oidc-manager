@@ -12,6 +12,7 @@ import { categoryAccent } from '../category-accent';
 import { ReportFieldComponent } from '../report-field/report-field.component';
 import { ReportResultsComponent } from '../report-results/report-results.component';
 import { ReportFormModel, formatValue, initialModel, toParameter, validateValue } from '../report-field/report-field-values';
+import { layoutFields, validateChoice } from './field-choices';
 
 type RunState =
   | { status: 'idle' }
@@ -55,6 +56,10 @@ export class ReportFormComponent {
 
   protected readonly fields = computed(() => (this.config.hasValue() ? this.config.value().fields : []));
   private readonly fieldsByKey = computed(() => new Map(this.fields().map((f) => [f.key, f])));
+  /** Fields and either/or groups, in display order. */
+  protected readonly items = computed(() => layoutFields(this.fields(), this.config.hasValue() ? this.config.value().choices : []));
+  /** Choice errors are shown only after a run attempt, so a half-filled form isn't flagged early. */
+  protected readonly submitted = signal(false);
 
   /** Form model; resets to the config's defaults whenever a different config loads. */
   protected readonly model = linkedSignal<ReportFormModel>(() => initialModel(this.fields()));
@@ -69,14 +74,26 @@ export class ReportFormComponent {
           return field ? validateValue(field, value()) : undefined;
         });
       });
+      // Either/or groups span several fields, so they are checked on the whole form.
+      validate(root, ({ value }) =>
+        this.items().flatMap((item) => {
+          if (item.kind !== 'choice') return [];
+          const message = validateChoice(item.alternatives, item.choice, value());
+          return message ? [{ kind: item.id, message }] : [];
+        }),
+      );
     },
     {
       submission: {
         action: async () => {
+          this.submitted.set(true);
           await this.run();
           return undefined;
         },
-        onInvalid: () => this.focusFirstInvalid(),
+        onInvalid: () => {
+          this.submitted.set(true);
+          this.focusFirstInvalid();
+        },
       },
     },
   );
@@ -95,8 +112,18 @@ export class ReportFormComponent {
     return (this.reportForm as unknown as Record<string, FieldTree<ReportParamValue>>)[key];
   }
 
+  protected choiceError(id: string): string | null {
+    if (!this.submitted()) return null;
+    return (
+      this.reportForm()
+        .errors()
+        .find((e) => e.kind === id)?.message ?? null
+    );
+  }
+
   protected reset(): void {
     this.reportForm().reset(initialModel(this.fields()));
+    this.submitted.set(false);
     this.runState.set({ status: 'idle' });
     this.exportError.set(null);
   }

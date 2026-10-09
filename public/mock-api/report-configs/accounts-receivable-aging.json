@@ -48,11 +48,40 @@
       "placeholder": "0.00"
     },
     {
+      "key": "customerId",
+      "label": "Customer ID",
+      "type": "text",
+      "pattern": "C-[0-9]{5}",
+      "placeholder": "C-12345"
+    },
+    {
       "key": "customerName",
       "label": "Customer name",
       "type": "text",
       "minLength": 2,
       "maxLength": 80
+    },
+    {
+      "key": "postcode",
+      "label": "Postcode",
+      "type": "text",
+      "pattern": "[0-9]{4}",
+      "maxLength": 4
+    }
+  ],
+  "choices": [
+    {
+      "label": "Customer",
+      "helpText": "Find the customer by ID, or by name and postcode.",
+      "alternatives": [
+        [
+          "customerId"
+        ],
+        [
+          "customerName",
+          "postcode"
+        ]
+      ]
     }
   ],
   "columns": [

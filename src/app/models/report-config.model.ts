@@ -6,8 +6,22 @@ export interface ReportConfig {
   name: string;
   description?: string;
   fields: ReportField[];
+  /** Groups of fields the user fills in as alternatives, e.g. a customer ID *or* a name and postcode. */
+  choices?: FieldChoice[];
   /** Results table columns, in display order. Without it, every SQL column is shown under its SQL name. */
   columns?: ReportColumn[];
+}
+
+/**
+ * A required either/or between sets of fields: at least one alternative must have every one of
+ * its fields filled in. The fields are still declared in `fields` (without `required`); the group
+ * is shown where its first field would be.
+ */
+export interface FieldChoice {
+  label: string; // group heading, e.g. "Customer"
+  alternatives: string[][]; // field keys, e.g. [["customerId"], ["customerName", "postcode"]]
+  helpText?: string;
+  message?: string; // error shown when no alternative is complete; generated when omitted
 }
 
 /** How a results column is displayed (and formatted in the Excel export). */

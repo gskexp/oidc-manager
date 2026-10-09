@@ -251,6 +251,49 @@ describe('ReportFormComponent', () => {
     expect(select.value).toBe('USD');
   });
 
+  it('requires one complete alternative of an either/or choice', async () => {
+    const { fixture, el, runReport } = await setup();
+    runReport.mockReturnValue(of(response));
+    // Reload the component with a config that has an either/or choice.
+    fixture.componentRef.setInput('reportConfigId', 'customer-report');
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/mock-api/report-configs/customer-report.json')
+      .flush({
+        reportConfigId: 'customer-report',
+        name: 'Customer report',
+        fields: [
+          { key: 'customerId', label: 'Customer ID', type: 'text' },
+          { key: 'customerName', label: 'Customer name', type: 'text' },
+          { key: 'postcode', label: 'Postcode', type: 'text' },
+        ],
+        choices: [{ label: 'Customer', alternatives: [['customerId'], ['customerName', 'postcode']] }],
+      } satisfies ReportConfig);
+    await fixture.whenStable();
+
+    expect(el.querySelector('fieldset.choice legend')?.textContent).toContain('Customer');
+    expect(el.querySelectorAll('.choice__or').length).toBe(1);
+
+    const submit = () => el.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+    setValue(el.querySelector('#field-customerName')!, 'Acme');
+    submit();
+    await fixture.whenStable();
+    expect(el.querySelector('.choice__error')?.textContent).toContain(
+      'Enter Customer ID, or Customer name and Postcode.',
+    );
+    expect(runReport).not.toHaveBeenCalled();
+
+    setValue(el.querySelector('#field-postcode')!, '2600');
+    await fixture.whenStable();
+    expect(el.querySelector('.choice__error')).toBeNull();
+    submit();
+    await fixture.whenStable();
+    expect(runReport).toHaveBeenCalledWith({
+      reportConfigId: 'customer-report',
+      parameters: { customerId: null, customerName: 'Acme', postcode: '2600' },
+    });
+  });
+
   it('shows a not-found state for unknown reports', async () => {
     TestBed.configureTestingModule({
       imports: [ReportFormComponent],
