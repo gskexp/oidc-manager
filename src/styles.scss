@@ -1,162 +1,52 @@
-@mixin light-theme {
+:root {
   color-scheme: light;
-
-  // Base: petrol ink on a cool grey-green ground, teal for actions.
   --color-bg: #f1f4f3;
   --color-surface: #ffffff;
-  --color-surface-muted: #f5f8f7;
+  --color-surface-alt: #f5f8f7;
   --color-border: #d3dddb;
-  --color-border-strong: #7d8f93;
+  --color-input: #7d8f93;
   --color-text: #1e2b2f;
-  --color-text-muted: #52636a;
-  --color-ink: #12343b;
+  --color-muted: #52636a;
   --color-header: #12343b;
-  --color-on-header: #ffffff;
   --color-primary: #0b6e6b;
-  --color-primary-hover: #085754;
   --color-on-primary: #ffffff;
-  --color-primary-soft: #e0f0ee;
-  --color-link: #0b6e6b;
   --color-danger: #b42318;
-  --color-danger-soft: #fcebea;
-  --color-success: #1e6b43;
-  --color-success-soft: #e6f4ec;
+  --color-danger-bg: #fcebea;
   --color-warning: #b45309;
-  --color-warning-soft: #fdf3e4;
-  --color-focus: #b45309;
-  --color-code-bg: rgb(0 0 0 / 6%);
+  --color-warning-bg: #fdf3e4;
 
-  // Category accents (see CategoryAccent). At least 5:1 on the surface, so they work as text too.
-  --hue-teal: #0b6e6b;
-  --hue-indigo: #3f51b5;
-  --hue-plum: #8e3b8a;
-  --hue-amber: #b45309;
-  --hue-green: #2e7d4f;
-  --hue-blue: #2f6690;
-  --color-on-cat: #ffffff; // icons drawn on a solid category colour
-
-  --shadow-sm: 0 1px 2px rgb(18 52 59 / 8%);
-  --shadow-md: 0 6px 16px rgb(18 52 59 / 12%);
+  --radius: 0.5rem;
 }
 
-@mixin dark-theme {
-  color-scheme: dark;
-
-  // Base: deep petrol ground; lighter teal for actions, with dark text on it.
-  --color-bg: #0f1719;
-  --color-surface: #172226;
-  --color-surface-muted: #1d2a2e;
-  --color-border: #2c3b40;
-  --color-border-strong: #6b7f84;
-  --color-text: #e3ebea;
-  --color-text-muted: #9fb1b4;
-  --color-ink: #eef5f4;
-  --color-header: #0a1113;
-  --color-on-header: #e3ebea;
-  --color-primary: #4fbdb6;
-  --color-primary-hover: #7dd3cc;
-  --color-on-primary: #062422;
-  --color-primary-soft: #173a38;
-  --color-link: #4fbdb6;
-  --color-danger: #ff8f85;
-  --color-danger-soft: #3b1f1d;
-  --color-success: #7fd8a4;
-  --color-success-soft: #15311f;
-  --color-warning: #f0a44b;
-  --color-warning-soft: #33260f;
-  --color-focus: #f0a44b;
-  --color-code-bg: rgb(255 255 255 / 8%);
-
-  // Lighter versions of each accent: at least 6.5:1 on the dark surface.
-  --hue-teal: #4fbdb6;
-  --hue-indigo: #9aa8ff;
-  --hue-plum: #e08ad9;
-  --hue-amber: #f0a44b;
-  --hue-green: #6fcf8f;
-  --hue-blue: #7fb8e6;
-  --color-on-cat: #0d1a1c;
-
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
-  --shadow-md: 0 6px 16px rgb(0 0 0 / 50%);
-}
-
-:root {
-  @include light-theme;
-
-  // The current category's colour; components set it from the category's accent. Tint it where
-  // used (color-mix with --color-surface) rather than in another token here, which would not
-  // follow overrides.
-  --cat: var(--color-primary);
-
-  --radius-sm: 0.375rem;
-  --radius: 0.625rem;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    @include dark-theme;
-  }
-}
-
-:root[data-theme='dark'] {
-  @include dark-theme;
-}
-
-*,
-*::before,
-*::after {
+* {
   box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-sans);
-  font-size: 1rem;
+  font-family: system-ui, sans-serif;
   line-height: 1.5;
-}
-
-h1,
-h2,
-h3 {
-  color: var(--color-ink);
-  line-height: 1.25;
-  letter-spacing: -0.01em;
 }
 
 h1 {
   margin: 0 0 0.5rem;
-  font-size: 1.875rem;
-  font-weight: 700;
+  font-size: 1.75rem;
 }
 
 h2 {
   margin: 0 0 0.5rem;
   font-size: 1.25rem;
-  font-weight: 650;
 }
 
 a {
-  color: var(--color-link);
+  color: var(--color-primary);
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-focus);
+  outline: 3px solid var(--color-warning);
   outline-offset: 2px;
-}
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.9em;
-  padding: 0.1em 0.35em;
-  border-radius: 0.25rem;
-  background: var(--color-code-bg);
 }
 
 .visually-hidden {
@@ -165,79 +55,49 @@ code {
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 .container {
-  width: 100%;
   max-width: 72rem;
-  margin-inline: auto;
-  padding-inline: 1rem;
-
-  @media (min-width: 768px) {
-    padding-inline: 2rem;
-  }
+  margin: 0 auto;
+  padding: 0 1rem;
 }
-
-// ---- Page structure ----
 
 .page-header {
   margin-bottom: 1.5rem;
+}
 
-  &__description {
-    margin: 0;
-    max-width: 48rem;
-    color: var(--color-text-muted);
-  }
+.page-header__description {
+  margin: 0;
+  color: var(--color-muted);
+}
 
-  // Category and report pages: a band in the category's colour, so you can see where you are.
-  &--category {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    border-left: 6px solid var(--cat);
-    border-radius: var(--radius);
-    background: color-mix(in srgb, var(--cat) 9%, var(--color-surface));
-
-    h1 {
-      margin-bottom: 0.25rem;
-    }
-  }
-
-  &__icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
-    padding: 0.75rem;
-    border-radius: var(--radius);
-    background: var(--cat);
-    color: var(--color-on-cat);
-  }
+.page-header--category {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-left: 6px solid var(--color-primary);
+  border-radius: var(--radius);
+  background: var(--color-surface);
 }
 
 .breadcrumb {
   margin-bottom: 1rem;
   font-size: 0.875rem;
+}
 
-  ol {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
+.breadcrumb ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 
-  li:not(:last-child)::after {
-    content: '/';
-    margin-inline: 0.5rem;
-    color: var(--color-text-muted);
-  }
-
-  [aria-current='page'] {
-    color: var(--color-text-muted);
-  }
+.breadcrumb li + li::before {
+  content: '/';
+  margin: 0 0.5rem;
+  color: var(--color-muted);
 }
 
 .card {
@@ -245,135 +105,69 @@ code {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-
-  @media (min-width: 768px) {
-    padding: 1.5rem;
-  }
 }
-
-// ---- Loading / empty / error states ----
 
 .state {
   margin: 0;
-  padding: 2rem 1.5rem;
+  padding: 2rem;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
-  color: var(--color-text-muted);
+  color: var(--color-muted);
   text-align: center;
+}
 
-  h1,
-  h2 {
-    color: var(--color-text);
-  }
+.state--error {
+  border: 1px solid var(--color-danger);
+  background: var(--color-danger-bg);
+}
 
-  p {
-    margin: 0 0 1rem;
-  }
-
-  p:last-child {
-    margin-bottom: 0;
-  }
-
-  &--loading::before {
-    content: '';
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    margin-inline-end: 0.5rem;
-    vertical-align: -0.15rem;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  &--error {
-    border-style: solid;
-    border-color: var(--color-danger);
-    background: var(--color-danger-soft);
-  }
-
-  &--inline {
-    padding: 1rem;
-    text-align: start;
-  }
+.state--inline {
+  padding: 1rem;
+  text-align: left;
 }
 
 .alert {
-  padding: 1.25rem 1.5rem;
-  border: 1px solid;
-  border-left-width: 4px;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid;
   border-radius: var(--radius);
-
-  h2 {
-    font-size: 1.125rem;
-  }
-
-  p {
-    margin: 0;
-  }
-
-  &--success {
-    border-color: var(--color-success);
-    background: var(--color-success-soft);
-  }
-
-  &--error {
-    border-color: var(--color-danger);
-    background: var(--color-danger-soft);
-  }
-
-  &--warning {
-    border-color: var(--color-warning);
-    background: var(--color-warning-soft);
-  }
 }
 
-// ---- Buttons ----
+.alert--error {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.alert--warning {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
 
 .btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 1.125rem;
-  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-input);
   border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s;
+}
 
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-  }
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-  &--primary {
-    background: var(--color-primary);
-    box-shadow: var(--shadow-sm);
-    color: var(--color-on-primary);
-
-    &:hover:not(:disabled) {
-      background: var(--color-primary-hover);
-    }
-  }
-
-  &--secondary {
-    border-color: var(--color-border-strong);
-    background: var(--color-surface);
-    color: var(--color-text);
-
-    &:hover:not(:disabled) {
-      background: var(--color-surface-muted);
-    }
-  }
+.btn--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .spinner {
@@ -391,35 +185,17 @@ code {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-// ---- Form controls ----
-
-input[type='text'],
-input[type='number'],
-input[type='date'],
+input:not([type='checkbox']),
 select {
-  min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-input);
+  border-radius: var(--radius);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+}
 
-  &:hover {
-    border-color: var(--color-ink);
-  }
-
-  &[aria-invalid='true'] {
-    border-color: var(--color-danger);
-    box-shadow: 0 0 0 1px var(--color-danger);
-  }
+input[aria-invalid='true'],
+select[aria-invalid='true'] {
+  border-color: var(--color-danger);
 }

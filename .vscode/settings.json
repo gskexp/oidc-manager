@@ -30,18 +30,14 @@
   },
   "peacock.color": "#91755d",
 
-  // Enable format on save globally for the workspace
   "editor.formatOnSave": true,
 
-  // Set Prettier as the default code formatter
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-  // Automatically run ESLint's auto-fix on save
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
 
-  // Language-specific overrides (optional)
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

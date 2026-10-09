@@ -1,14 +1,8 @@
 import { ValidationError } from '@angular/forms/signals';
 import { DateRangeValue, ReportField, ReportParamValue } from '../../models';
 
-/**
- * Per-type behaviour for report fields. Each function switches exhaustively on `field.type`,
- * so adding a field type is a compile error here until it is handled.
- */
-
 export type ReportFormModel = Record<string, ReportParamValue>;
 
-/** Initial form value for a field: its `defaultValue`, or the type's empty value. */
 export function initialValue(field: ReportField): ReportParamValue {
   switch (field.type) {
     case 'text':
@@ -30,14 +24,13 @@ export function initialModel(fields: readonly ReportField[]): ReportFormModel {
   return Object.fromEntries(fields.map((field) => [field.key, initialValue(field)]));
 }
 
-/** Validates a field's value against its config. Returns an empty array when valid. */
 export function validateValue(field: ReportField, value: ReportParamValue): ValidationError[] {
   const errors: ValidationError[] = [];
   const add = (kind: string, message: string) => errors.push({ kind, message });
 
   switch (field.type) {
     case 'text': {
-      const text = asString(value).trim(); // matches the backend, which trims too
+      const text = asString(value).trim();
       if (!text) {
         if (field.required) add('required', `${field.label} is required.`);
         break;
@@ -102,10 +95,7 @@ export function validateValue(field: ReportField, value: ReportParamValue): Vali
         add('minSelected', `Select at least ${min} ${plural(min, 'option')}.`);
       }
       if (field.maxSelected != null && count > field.maxSelected) {
-        add(
-          'maxSelected',
-          `Select no more than ${field.maxSelected} ${plural(field.maxSelected, 'option')}.`,
-        );
+        add('maxSelected', `Select no more than ${field.maxSelected} ${plural(field.maxSelected, 'option')}.`);
       }
       break;
     }
@@ -115,7 +105,6 @@ export function validateValue(field: ReportField, value: ReportParamValue): Vali
   return errors;
 }
 
-/** Converts a form value into the parameter sent to the backend. Empty values become `null`. */
 export function toParameter(field: ReportField, value: ReportParamValue): ReportParamValue {
   switch (field.type) {
     case 'text':
@@ -136,7 +125,6 @@ export function toParameter(field: ReportField, value: ReportParamValue): Report
   }
 }
 
-/** Human-readable value, used in the run confirmation summary. */
 export function formatValue(field: ReportField, value: ReportParamValue): string {
   const none = 'Not specified';
   switch (field.type) {
@@ -161,7 +149,6 @@ export function formatValue(field: ReportField, value: ReportParamValue): string
   }
 }
 
-/** Formats an ISO `YYYY-MM-DD` date for display without timezone shifts. */
 export function formatDate(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!match) return iso;
@@ -176,10 +163,8 @@ function checkDateBounds(
   label: string,
   add: (kind: string, message: string) => void,
 ) {
-  if (minDate && date < minDate)
-    add('minDate', `${label} must be on or after ${formatDate(minDate)}.`);
-  if (maxDate && date > maxDate)
-    add('maxDate', `${label} must be on or before ${formatDate(maxDate)}.`);
+  if (minDate && date < minDate) add('minDate', `${label} must be on or after ${formatDate(minDate)}.`);
+  if (maxDate && date > maxDate) add('maxDate', `${label} must be on or before ${formatDate(maxDate)}.`);
 }
 
 function optionLabel(options: { value: string; label: string }[], value: string): string {

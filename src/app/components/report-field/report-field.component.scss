@@ -1,93 +1,59 @@
-:host {
-  display: block;
-}
-
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
   margin: 0;
-  min-width: 0;
+  padding: 0;
+  border: 0;
+}
 
-  &--group {
-    border: 0;
-    padding: 0;
-  }
+.field__label {
+  padding: 0;
+  font-weight: 600;
+}
 
-  &__label {
-    font-weight: 600;
-    color: var(--color-text);
-    padding: 0;
-  }
+.field__sublabel,
+.field__help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
 
-  &__sublabel {
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
-  }
+.field__required,
+.field__error {
+  color: var(--color-danger);
+}
 
-  &__required {
-    color: var(--color-danger);
-    margin-inline-start: 0.125rem;
-  }
+.field__control {
+  max-width: 28rem;
+}
 
-  &__control {
-    width: 100%;
-    max-width: 28rem;
+.field__control--number,
+.field__control--date {
+  max-width: 14rem;
+}
 
-    &--number,
-    &--date {
-      max-width: 14rem;
-    }
-  }
+.field__range,
+.field__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
 
-  &__range {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 1rem;
-  }
+.field__range-part {
+  display: flex;
+  flex-direction: column;
+}
 
-  &__range-part {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
+.field__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-  &__options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.25rem;
-  }
-
-  &__option {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-
-    input {
-      width: 1.125rem;
-      height: 1.125rem;
-      accent-color: var(--color-primary);
-    }
-  }
-
-  &__help {
-    margin: 0;
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
-  }
-
-  &__errors {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  &__error {
-    font-size: 0.875rem;
-    color: var(--color-danger);
-
-    &::before {
-      content: '⚠ ';
-    }
-  }
+.field__errors {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
 }

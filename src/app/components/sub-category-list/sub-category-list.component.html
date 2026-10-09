@@ -24,7 +24,6 @@
   @let groups = subCategories.value();
 
   <header class="page-header page-header--category">
-    <span class="page-header__icon"><app-icon [name]="cat.icon" /></span>
     <div>
       <h1>{{ cat.name }}</h1>
       @if (cat.description) {
@@ -40,7 +39,6 @@
       @for (group of groups; track group.id) {
         <section class="subcategory card" [attr.aria-labelledby]="'sub-' + group.id">
           <header class="subcategory__header">
-            <span class="subcategory__icon"><app-icon [name]="group.icon ?? cat.icon" /></span>
             <div>
               <h2 class="subcategory__name" [id]="'sub-' + group.id">{{ group.name }}</h2>
               @if (group.description) {
@@ -55,11 +53,7 @@
             <ul class="report-list" role="list">
               @for (report of group.reports; track report.id) {
                 <li>
-                  <a
-                    class="report-link"
-                    [routerLink]="['/reports', report.reportConfigId]"
-                    [queryParams]="{ category: cat.id }"
-                  >
+                  <a class="report-link" [routerLink]="['/reports', report.reportConfigId]" [queryParams]="{ category: cat.id }">
                     <span class="report-link__name">{{ report.name }}</span>
                     @if (report.description) {
                       <span class="report-link__description">{{ report.description }}</span>

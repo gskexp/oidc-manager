@@ -12,7 +12,6 @@ const percent = new Intl.NumberFormat(undefined, {
 });
 const plainNumber = new Intl.NumberFormat();
 
-/** Formats a result cell for display, following the column's configured format. */
 export function formatCell(value: ReportCellValue, format?: ReportColumnFormat): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -32,17 +31,10 @@ export function formatCell(value: ReportCellValue, format?: ReportColumnFormat):
   return value;
 }
 
-/** Numbers are right-aligned so digits line up. */
-export function isNumericColumn(
-  format: ReportColumnFormat | undefined,
-  sample: ReportCellValue,
-): boolean {
-  return format === 'integer' || format === 'decimal' || format === 'percent'
-    ? true
-    : format === undefined && typeof sample === 'number';
+export function isNumericColumn(format: ReportColumnFormat | undefined, sample: ReportCellValue): boolean {
+  return format === 'integer' || format === 'decimal' || format === 'percent' ? true : format === undefined && typeof sample === 'number';
 }
 
-/** ISO date (YYYY-MM-DD) or date-time strings, without timezone shifts. */
 function formatDateValue(value: string, format: 'date' | 'month'): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(value);
   if (!match) return value;

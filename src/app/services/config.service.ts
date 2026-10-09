@@ -3,10 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { Category, ReportConfig, SubCategory } from '../models';
 import { ApiUrls } from './api-urls';
 
-/**
- * Read-only configuration. Each method creates an `httpResource`, so call it in an injection
- * context (e.g. a component field initializer). Returning `undefined` from a parameter skips the request.
- */
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
   private readonly urls = inject(ApiUrls);

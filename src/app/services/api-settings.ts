@@ -4,7 +4,6 @@ export type ApiMode = 'mock' | 'api';
 
 export interface ApiSettings {
   mode: ApiMode;
-  /** Origin (and optional path prefix) the API or mock files are served from. No trailing slash. */
   baseUrl: string;
   mock?: {
     runDelayMs?: number;

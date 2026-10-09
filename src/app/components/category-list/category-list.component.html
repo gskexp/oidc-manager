@@ -19,12 +19,7 @@
     <ul class="category-grid" role="list">
       @for (category of list; track category.id) {
         <li>
-          <a
-            class="category-card card"
-            [routerLink]="['/categories', category.id]"
-            [style.--cat]="accent(category)"
-          >
-            <span class="category-card__icon"><app-icon [name]="category.icon" /></span>
+          <a class="category-card card" [routerLink]="['/categories', category.id]">
             <span class="category-card__body">
               <span class="category-card__name">{{ category.name }}</span>
               @if (category.description) {

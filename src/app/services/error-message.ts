@@ -1,9 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-/**
- * A message to show for a failed request: field errors or the server's safe detail when present,
- * otherwise a generic message. Never includes technical details.
- */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof HttpErrorResponse && error.status === 404;
+}
+
 export function errorMessage(error: unknown, fallback: string): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) return "Couldn't reach the server. Check your connection and try again.";

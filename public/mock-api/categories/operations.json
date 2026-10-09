@@ -1,7 +1,5 @@
 {
   "id": "operations",
   "name": "Operations",
-  "description": "Inventory, fulfilment and logistics.",
-  "icon": "operations",
-  "accent": "amber"
+  "description": "Inventory, fulfilment and logistics."
 }

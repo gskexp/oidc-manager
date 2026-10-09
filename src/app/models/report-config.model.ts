@@ -1,40 +1,29 @@
-// ---- Report configuration (page 3) ----
-// Must never contain SQL text or SQL file paths.
-
 export interface ReportConfig {
   reportConfigId: string;
   name: string;
   description?: string;
   fields: ReportField[];
-  /** Groups of fields the user fills in as alternatives, e.g. a customer ID *or* a name and postcode. */
   choices?: FieldChoice[];
-  /** Results table columns, in display order. Without it, every SQL column is shown under its SQL name. */
   columns?: ReportColumn[];
 }
 
-/**
- * A required either/or between sets of fields: at least one alternative must have every one of
- * its fields filled in. The fields are still declared in `fields` (without `required`); the group
- * is shown where its first field would be.
- */
 export interface FieldChoice {
-  label: string; // group heading, e.g. "Customer"
-  alternatives: string[][]; // field keys, e.g. [["customerId"], ["customerName", "postcode"]]
+  label: string;
+  alternatives: string[][];
   helpText?: string;
-  message?: string; // error shown when no alternative is complete; generated when omitted
+  message?: string;
 }
 
-/** How a results column is displayed (and formatted in the Excel export). */
 export type ReportColumnFormat = 'text' | 'integer' | 'decimal' | 'percent' | 'date' | 'month';
 
 export interface ReportColumn {
-  key: string; // SQL result column name (matched case-insensitively)
-  label: string; // table header
+  key: string;
+  label: string;
   format?: ReportColumnFormat;
 }
 
 interface BaseField {
-  key: string; // parameter name sent to the backend
+  key: string;
   label: string;
   required?: boolean;
   helpText?: string;
@@ -64,7 +53,7 @@ export interface NumberField extends BaseField {
 
 export interface DateField extends BaseField {
   type: 'date';
-  defaultValue?: string; // ISO YYYY-MM-DD
+  defaultValue?: string;
   minDate?: string;
   maxDate?: string;
 }
@@ -90,8 +79,7 @@ export interface MultiSelectField extends BaseField {
   maxSelected?: number;
 }
 
-export type ReportField =
-  TextField | NumberField | DateField | DateRangeField | SelectField | MultiSelectField;
+export type ReportField = TextField | NumberField | DateField | DateRangeField | SelectField | MultiSelectField;
 
 export type DateRangeValue = { from: string; to: string };
 

@@ -1,7 +1,5 @@
 {
   "id": "hr",
   "name": "HR",
-  "description": "Workforce, headcount and leave.",
-  "icon": "people",
-  "accent": "plum"
+  "description": "Workforce, headcount and leave."
 }
