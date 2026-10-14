@@ -124,16 +124,14 @@
             }
           </dl>
         </div>
-        @if (canExport) {
-          <button type="button" class="btn btn--secondary" [disabled]="exporting() || result.rowCount === 0" (click)="exportExcel()">
-            @if (exporting()) {
-              <span class="spinner" aria-hidden="true"></span>
-              Exporting…
-            } @else {
-              Export to Excel
-            }
-          </button>
-        }
+        <button type="button" class="btn btn--secondary" [disabled]="exporting() || result.rowCount === 0" (click)="exportExcel()">
+          @if (exporting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Exporting…
+          } @else {
+            Export to Excel
+          }
+        </button>
       </header>
 
       @if (exportError(); as message) {
@@ -143,9 +141,6 @@
         <p class="alert alert--warning" role="status">
           {{ result.message ?? 'Only the first ' + result.rowCount + ' rows are shown.' }}
         </p>
-      }
-      @if (!canExport) {
-        <p class="results__note">Excel export is available when the app is connected to the backend.</p>
       }
 
       @if (result.rowCount === 0) {

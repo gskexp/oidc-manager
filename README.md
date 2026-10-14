@@ -12,6 +12,15 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Mock backend
+
+The app reads its data from a NestJS mock backend in `mock-backend/`, which serves the JSON files in `mock-backend/data` on port 8080. The dev server proxies `/api` to it.
+
+```bash
+npm install --prefix mock-backend
+npm run backend
+```
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

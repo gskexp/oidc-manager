@@ -1,0 +1,288 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "OpenAPI definition", "version": "v0" },
+  "servers": [{ "url": "http://localhost:8080", "description": "Generated server url" }],
+  "paths": {
+    "/api/reports/{reportConfigId}/run": {
+      "post": {
+        "tags": ["report-run-controller"],
+        "operationId": "run",
+        "parameters": [{ "name": "reportConfigId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReportRunRequest" } } }, "required": true },
+        "responses": { "200": { "description": "OK", "content": { "*/*": { "schema": { "$ref": "#/components/schemas/ReportRunResponse" } } } } }
+      }
+    },
+    "/api/reports/{reportConfigId}/export": {
+      "post": {
+        "tags": ["report-run-controller"],
+        "operationId": "export",
+        "parameters": [{ "name": "reportConfigId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReportRunRequest" } } }, "required": true },
+        "responses": { "200": { "description": "OK", "content": { "*/*": { "schema": { "type": "string", "format": "byte" } } } } }
+      }
+    },
+    "/api/report-configs/{reportConfigId}": {
+      "get": {
+        "tags": ["catalog-controller"],
+        "operationId": "reportConfig",
+        "parameters": [{ "name": "reportConfigId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK", "content": { "*/*": { "schema": { "$ref": "#/components/schemas/ReportConfig" } } } } }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": ["catalog-controller"],
+        "operationId": "categories",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "*/*": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } } } }
+          }
+        }
+      }
+    },
+    "/api/categories/{categoryId}": {
+      "get": {
+        "tags": ["catalog-controller"],
+        "operationId": "category",
+        "parameters": [{ "name": "categoryId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK", "content": { "*/*": { "schema": { "$ref": "#/components/schemas/Category" } } } } }
+      }
+    },
+    "/api/categories/{categoryId}/subcategories": {
+      "get": {
+        "tags": ["catalog-controller"],
+        "operationId": "subCategories",
+        "parameters": [{ "name": "categoryId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": { "*/*": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/SubCategory" } } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "JsonNode": {
+        "type": "object",
+        "properties": {
+          "empty": { "type": "boolean" },
+          "valueNode": { "type": "boolean" },
+          "container": { "type": "boolean" },
+          "missingNode": { "type": "boolean" },
+          "array": { "type": "boolean" },
+          "object": { "type": "boolean" },
+          "nodeType": { "type": "string", "enum": ["ARRAY", "BINARY", "BOOLEAN", "MISSING", "NULL", "NUMBER", "OBJECT", "POJO", "STRING"] },
+          "pojo": { "type": "boolean" },
+          "number": { "type": "boolean" },
+          "integralNumber": { "type": "boolean" },
+          "floatingPointNumber": { "type": "boolean" },
+          "short": { "type": "boolean" },
+          "int": { "type": "boolean" },
+          "long": { "type": "boolean" },
+          "float": { "type": "boolean" },
+          "double": { "type": "boolean" },
+          "bigDecimal": { "type": "boolean" },
+          "bigInteger": { "type": "boolean" },
+          "string": { "type": "boolean" },
+          "textual": { "type": "boolean", "deprecated": true },
+          "boolean": { "type": "boolean" },
+          "null": { "type": "boolean" },
+          "binary": { "type": "boolean" },
+          "embeddedValue": { "type": "boolean" }
+        }
+      },
+      "ReportRunRequest": {
+        "type": "object",
+        "properties": {
+          "reportConfigId": { "type": "string" },
+          "parameters": { "type": "object", "additionalProperties": { "$ref": "#/components/schemas/JsonNode" } }
+        }
+      },
+      "ReportColumn": {
+        "type": "object",
+        "properties": { "key": { "type": "string" }, "label": { "type": "string" }, "format": { "type": "string" } }
+      },
+      "ReportRunResponse": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string" },
+          "status": { "type": "string" },
+          "message": { "type": "string" },
+          "columns": { "type": "array", "items": { "$ref": "#/components/schemas/ReportColumn" } },
+          "rows": { "type": "array", "items": { "type": "array", "items": {} } },
+          "rowCount": { "type": "integer", "format": "int32" },
+          "truncated": { "type": "boolean" }
+        }
+      },
+      "DateField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "defaultValue": { "type": "string" },
+              "minDate": { "type": "string" },
+              "maxDate": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "DateRange": { "type": "object", "properties": { "from": { "type": "string" }, "to": { "type": "string" } } },
+      "DateRangeField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "defaultValue": { "$ref": "#/components/schemas/DateRange" },
+              "minDate": { "type": "string" },
+              "maxDate": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "MultiSelectField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "options": { "type": "array", "items": { "$ref": "#/components/schemas/SelectOption" } },
+              "defaultValue": { "type": "array", "items": { "type": "string" } },
+              "minSelected": { "type": "integer", "format": "int32" },
+              "maxSelected": { "type": "integer", "format": "int32" }
+            }
+          }
+        ]
+      },
+      "NumberField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "defaultValue": { "type": "number", "format": "double" },
+              "min": { "type": "number", "format": "double" },
+              "max": { "type": "number", "format": "double" },
+              "step": { "type": "number", "format": "double" }
+            }
+          }
+        ]
+      },
+      "ReportConfig": {
+        "type": "object",
+        "properties": {
+          "reportConfigId": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "fields": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                { "$ref": "#/components/schemas/DateField" },
+                { "$ref": "#/components/schemas/DateRangeField" },
+                { "$ref": "#/components/schemas/MultiSelectField" },
+                { "$ref": "#/components/schemas/NumberField" },
+                { "$ref": "#/components/schemas/SelectField" },
+                { "$ref": "#/components/schemas/TextField" }
+              ]
+            }
+          },
+          "columns": { "type": "array", "items": { "$ref": "#/components/schemas/ReportColumn" } }
+        }
+      },
+      "ReportField": { "discriminator": { "propertyName": "type" }, "properties": { "type": { "type": "string" } }, "required": ["type"] },
+      "SelectField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "options": { "type": "array", "items": { "$ref": "#/components/schemas/SelectOption" } },
+              "defaultValue": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "SelectOption": { "type": "object", "properties": { "value": { "type": "string" }, "label": { "type": "string" } } },
+      "TextField": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ReportField" },
+          {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "required": { "type": "boolean" },
+              "helpText": { "type": "string" },
+              "placeholder": { "type": "string" },
+              "defaultValue": { "type": "string" },
+              "minLength": { "type": "integer", "format": "int32" },
+              "maxLength": { "type": "integer", "format": "int32" },
+              "pattern": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "icon": { "type": "string" },
+          "accent": { "type": "string" },
+          "subcategoryPath": { "type": "string" }
+        }
+      },
+      "ReportSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "reportConfigId": { "type": "string" }
+        }
+      },
+      "SubCategory": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "categoryId": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "icon": { "type": "string" },
+          "reports": { "type": "array", "items": { "$ref": "#/components/schemas/ReportSummary" } }
+        }
+      }
+    }
+  }
+}

@@ -1,1 +1,0 @@
-{"columns":[{"key":"department","label":"Department"},{"key":"headcount","label":"Headcount","format":"integer"}],"rows":[["finance",23],["hr",12],["it",31],["operations",56],["sales",40]],"rowCount":5,"truncated":false}

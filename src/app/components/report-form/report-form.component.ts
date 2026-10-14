@@ -40,8 +40,6 @@ export class ReportFormComponent {
   private readonly injector = inject(Injector);
   private readonly resultsHeading = viewChild<ElementRef<HTMLElement>>('resultsHeading');
 
-  protected readonly canExport = this.reportService.canExport;
-
   private readonly configService = inject(ConfigService);
   protected readonly config = this.configService.getReportConfig(() => this.reportConfigId());
   protected readonly parentCategory = this.configService.getCategory(() => this.category());
