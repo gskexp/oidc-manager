@@ -26,8 +26,23 @@
     "jksPath": "data/test-keystore.jks",
     "jksPassword": "changeit-test",
     "keys": [
-      { "name": "Orders Service Account (RSA)", "alias": "test-orders-svc" },
-      { "name": "Billing Service Account (EC P-256)", "alias": "test-billing-svc" }
+      {
+        "name": "Orders Service Account (RSA)",
+        "alias": "test-orders-svc"
+      },
+      {
+        "name": "Billing Service Account (EC P-256)",
+        "alias": "test-billing-svc"
+      }
     ]
+  },
+  "registration": {
+    "fixedFields": {
+      "organisationId": "ORG-TEST-0001",
+      "deviceType": "B2B_GATEWAY",
+      "platform": "JAVA",
+      "channel": "PARTNER_API",
+      "appVersion": "1.0.0"
+    }
   }
 }

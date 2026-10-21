@@ -1,7 +1,6 @@
 package com.example.b2b;
 
 import com.example.b2b.config.AppConfig;
-import com.example.b2b.config.KeyEntry;
 import com.example.b2b.config.OAuthSettings;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +61,7 @@ public final class AuthService {
     }
 
     /** Runs all three steps and returns the final token. */
-    public TokenResult authenticate(AppConfig config, KeyEntry key) throws B2bClientException, InterruptedException {
+    public TokenResult authenticate(AppConfig config, SigningKey key) throws B2bClientException, InterruptedException {
         out.println();
         out.println("== Authentication [" + config.environment() + " / " + key.name() + "] ==");
         String b2bToken = obtainB2bToken(config, key);
@@ -74,7 +73,7 @@ public final class AuthService {
     // Step 1: B2B token
     // ---------------------------------------------------------------------------------------------
 
-    String obtainB2bToken(AppConfig config, KeyEntry key) throws B2bClientException, InterruptedException {
+    String obtainB2bToken(AppConfig config, SigningKey key) throws B2bClientException, InterruptedException {
         OAuthSettings oauth = config.oauth();
         URI endpoint = URI.create(config.endpoints().b2bTokenEndpoint());
         out.println("[Step 1] Requesting B2B token (" + oauth.b2bAuthMethod() + ") from " + endpoint);
@@ -86,7 +85,7 @@ public final class AuthService {
             form.put("scope", oauth.b2bScope());
         }
         if (OAuthSettings.AUTH_PRIVATE_KEY_JWT.equals(oauth.b2bAuthMethod())) {
-            KeyStoreService keyStore = KeyStoreService.load(config.jks());
+            KeyStoreService keyStore = KeyStoreService.load(key);
             PrivateKey privateKey = keyStore.privateKey(key.alias());
             out.println("         Signing client assertion with " + privateKey.getAlgorithm()
                     + " key '" + key.alias() + "'");

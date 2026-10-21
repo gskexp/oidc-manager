@@ -26,8 +26,23 @@
     "jksPath": "data/prod-keystore.jks",
     "jksPassword": "${PROD_JKS_PASSWORD}",
     "keys": [
-      { "name": "Orders Service Account (RSA)", "alias": "prod-orders-svc-2026" },
-      { "name": "Billing Service Account (EC P-256)", "alias": "prod-billing-svc-2026" }
+      {
+        "name": "Orders Service Account (RSA)",
+        "alias": "prod-orders-svc-2026"
+      },
+      {
+        "name": "Billing Service Account (EC P-256)",
+        "alias": "prod-billing-svc-2026"
+      }
     ]
+  },
+  "registration": {
+    "fixedFields": {
+      "organisationId": "ORG-0001",
+      "deviceType": "B2B_GATEWAY",
+      "platform": "JAVA",
+      "channel": "PARTNER_API",
+      "appVersion": "1.0.0"
+    }
   }
 }

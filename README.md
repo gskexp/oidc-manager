@@ -2,6 +2,23 @@
 
 Interactive CLI for registering devices and running the B2B token → OIDC login → final token → API flow.
 
+## Register Device
+
+Prompts for environment, **RA number**, **device name** and **OTAC**, then:
+
+1. Generates an RSA-2048 key pair and a self-signed certificate (`OU=RA <raNumber>, CN=<deviceName>`).
+2. Saves it to `data/{env}/devices/<device-alias>/` *before* calling the server:
+   `keystore.jks` (password = the env's `jks.jksPassword`), `private-key.pem`, `public-key.pem`, `certificate.pem`, `device.json`.
+3. POSTs to `registrationEndpoint`:
+   ```json
+   { ...registration.fixedFields..., "clientId": "...", "raNumber": "...", "deviceName": "...",
+     "otac": "...", "keyId": "<alias>", "keyAlgorithm": "RSA", "keySize": 2048, "publicKey": "<base64 SPKI>" }
+   ```
+4. Records the result (`REGISTERED` / `FAILED`, HTTP status, response body) in `device.json`.
+
+Registered devices appear as selectable keys under **Generate Token & Test API**, after the keys in `jks.keys`.
+Re-registering an existing device name asks before replacing a registered key; a failed one is replaced silently.
+
 ## Build & run
 
 ```bash
@@ -22,8 +39,9 @@ java -Db2b.dataDir=/other/dir -jar target/...jar        # use a different config
 | `oauth.loginUsernameField` / `loginPasswordField` | Input names on the IdP login form (default `username` / `password`) |
 | `oauth.b2bTokenPlacement` | `header` (`Authorization: Bearer <b2b>`, default) or `form` (sent as `oauth.b2bTokenParamName`, default `b2b_token`) |
 | `oauth.usePkce` | Send PKCE S256 (default `true`) |
-| `jks.jksPath`, `jksPassword`, `keyPassword` | JKS or PKCS12; `keyPassword` defaults to `jksPassword` |
-| `jks.keys[]` | `{ "name": "...", "alias": "..." }` – selectable in the menu |
+| `jks.jksPath`, `jksPassword`, `keyPassword` | JKS or PKCS12; `keyPassword` defaults to `jksPassword`. `jksPassword` also protects device keystores |
+| `jks.keys[]` | `{ "name": "...", "alias": "..." }` – selectable in the token flow (optional) |
+| `registration.fixedFields` | Fixed per-environment fields merged into the registration payload (any JSON) |
 
 Any string value `${NAME}` is replaced by environment variable `NAME` (used by `prod-config.json`, so prod secrets stay out of the file):
 

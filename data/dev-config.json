@@ -26,8 +26,23 @@
     "jksPath": "data/dev-keystore.jks",
     "jksPassword": "changeit-dev",
     "keys": [
-      { "name": "Orders Service Account (RSA)", "alias": "dev-orders-svc" },
-      { "name": "Billing Service Account (EC P-256)", "alias": "dev-billing-svc" }
+      {
+        "name": "Orders Service Account (RSA)",
+        "alias": "dev-orders-svc"
+      },
+      {
+        "name": "Billing Service Account (EC P-256)",
+        "alias": "dev-billing-svc"
+      }
     ]
+  },
+  "registration": {
+    "fixedFields": {
+      "organisationId": "ORG-DEV-0001",
+      "deviceType": "B2B_GATEWAY",
+      "platform": "JAVA",
+      "channel": "PARTNER_API",
+      "appVersion": "1.0.0"
+    }
   }
 }

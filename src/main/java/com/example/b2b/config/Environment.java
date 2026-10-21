@@ -2,16 +2,21 @@ package com.example.b2b.config;
 
 /** Supported target environments and their configuration file names. */
 public enum Environment {
-    DEV("Dev", "dev-config.json"),
-    TEST("Test", "test-config.json"),
-    PROD("Prod", "prod-config.json");
+    DEV("dev", "Dev"),
+    TEST("test", "Test"),
+    PROD("prod", "Prod");
 
+    private final String id;
     private final String displayName;
-    private final String fileName;
 
-    Environment(String displayName, String fileName) {
+    Environment(String id, String displayName) {
+        this.id = id;
         this.displayName = displayName;
-        this.fileName = fileName;
+    }
+
+    /** Short id used for file and directory names, e.g. {@code dev}. */
+    public String id() {
+        return id;
     }
 
     public String displayName() {
@@ -19,6 +24,6 @@ public enum Environment {
     }
 
     public String fileName() {
-        return fileName;
+        return id + "-config.json";
     }
 }

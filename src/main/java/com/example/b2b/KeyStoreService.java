@@ -1,7 +1,5 @@
 package com.example.b2b;
 
-import com.example.b2b.config.JksSettings;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,17 +30,21 @@ public final class KeyStoreService {
         this.keyPassword = keyPassword;
     }
 
-    /** Loads the keystore described by the given settings. */
-    public static KeyStoreService load(JksSettings settings) throws B2bClientException {
-        Path path = Path.of(settings.jksPath());
+    /** Loads the keystore holding the given signing key. */
+    public static KeyStoreService load(SigningKey key) throws B2bClientException {
+        return load(key.keystorePath(), key.storePassword(), key.keyPassword());
+    }
+
+    /** Loads a JKS or PKCS12 keystore. */
+    public static KeyStoreService load(Path path, String password, String keyPassword) throws B2bClientException {
         if (!Files.isRegularFile(path)) {
             throw new B2bClientException("Keystore not found: " + path.toAbsolutePath()
                     + " (check jks.jksPath in the configuration)");
         }
-        char[] storePassword = settings.jksPassword().toCharArray();
+        char[] storePassword = password.toCharArray();
         try {
             KeyStore keyStore = KeyStore.getInstance(path.toFile(), storePassword);
-            return new KeyStoreService(keyStore, path, settings.keyPassword().toCharArray());
+            return new KeyStoreService(keyStore, path, keyPassword.toCharArray());
         } catch (IOException e) {
             if (e.getCause() instanceof UnrecoverableKeyException) {
                 throw new B2bClientException("Unable to open keystore " + path
