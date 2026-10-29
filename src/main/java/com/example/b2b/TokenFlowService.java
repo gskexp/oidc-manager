@@ -17,9 +17,9 @@ public final class TokenFlowService {
         var privateKey = key.privateKey();
         var assertion = signer.createClientAssertion(privateKey, key.alias(), config.clientId(), config.tokenEndpoint());
         var b2b = exchanges.unattended(config, assertion);
-        log.info("Unattended B2B access token: {}", b2b.accessToken());
+        log.debug("Unattended B2B access token: {}", b2b.accessToken());
         var user = userAuth.authenticate(config);
-        log.info("User access token: {}", user.accessToken());
+        log.debug("User access token: {}", user.accessToken());
         var finalAssertion = signer.createClientAssertion(privateKey, key.alias(), config.clientId(), config.tokenEndpoint());
         return exchanges.finalToken(config, user.accessToken(), b2b.accessToken(), finalAssertion);
     }

@@ -49,3 +49,16 @@
 - User fields: grant_type=authorization_code, code, client_id (attended), client_secret (attended), redirect_uri.
 - Final fields: client_id (unattended), client_assertion, audience, grant_type=urn:ietf:params:oauth:grant-type:token-exchange, subject_token_type=urn:ietf:params:oauth:token-type:access_token, subject_token (user), actor_token_type=urn:ietf:params:oauth:token-type:jwt, actor_token (B2B). Do not add client_assertion_type.
 - Full flow: B2B token, user browser sign-in/token, then final exchange. Sign a fresh assertion after browser login.
+
+## Outbound TLS trust
+- Load additional CA certificates from `data/trusted-certs/` (or beneath `b2b.dataDir`) when building application HTTP clients. Accept PEM/CRT/CER files and multi-certificate PEM bundles.
+- Retain normal JVM CA trust and TLS hostname checks. Keep remote server trust separate from the localhost callback TLS identity.
+- Explain PKIX errors with the failing endpoint and the certificate directory; token request timeout diagnostics must reflect the 10-second token timeout.
+
+## Menus and startup defaults
+- Use the user-facing name Activate Device. Main menu: activation, full flow, individual token steps, exit. Individual steps: unattended, attended, final-only, back.
+- Load optional `data/startup-config.json` once at launch. Supported actions: MAIN_MENU, TOKEN_STEPS, ACTIVATE_DEVICE, FULL_FLOW, UNATTENDED_TOKEN, ATTENDED_TOKEN, FINAL_TOKEN.
+- Startup defaults may select environment, deviceAlias, activation inputs (raNumber/deviceName/otac), and final-only token inputs (userToken/b2bToken). Prompt only for missing values. Apply environment/device defaults throughout that session.
+- Execute a non-menu startup action once; exit afterward only when exitAfterAction is true. Unknown aliases must not fall back to a different device. Keep existing activation replacement confirmation.
+- Reuse individual-step user tokens by environment and B2B tokens by environment/device within the same session. Final-only does not perform other token requests.
+- Full flow presents only the final access token at INFO; move intermediate tokens and authorization codes to DEBUG while retaining HTTP request/status logging.

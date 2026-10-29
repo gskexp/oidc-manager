@@ -58,7 +58,7 @@ public final class DeviceRegistrationService {
      */
     public boolean register(Environment environment, AppConfig config, RegistrationRequest request)
             throws B2bClientException, InterruptedException {
-        log.debug("== Device Registration [{} / {}] ==", config.env(), request.deviceName());
+        log.debug("== Device Activation [{} / {}] ==", config.env(), request.deviceName());
 
         var endpoint = registrationUri(config.issuerUrlBase(), request.deviceName());
         var alias = DeviceStore.aliasFor(request.deviceName());
@@ -129,15 +129,15 @@ public final class DeviceRegistrationService {
         deviceStore.writeMetadata(environment, metadata.withResult(success, status, body));
 
         if (success) {
-            log.info("[SUCCESS] Device registered (HTTP {})", status);
+            log.info("[SUCCESS] Device activated (HTTP {})", status);
             var printable = body.isTextual() ? body.asText() : body.toPrettyString();
             if (!printable.isBlank()) {
                 log.debug(printable);
             }
             return true;
         }
-        log.error("[FAILURE] Device registration rejected (HTTP {}): {}", status, HttpSupport.describeOAuthError(mapper, response.body()));
-        log.error("          Key material kept in {} (status FAILED); registering the same device name again will replace it.", dir);
+        log.error("[FAILURE] Device activation rejected (HTTP {}): {}", status, HttpSupport.describeOAuthError(mapper, response.body()));
+        log.error("          Key material kept in {} (status FAILED); activating the same device name again will replace it.", dir);
         return false;
     }
 

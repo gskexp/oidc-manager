@@ -32,7 +32,7 @@ public final class TokenClient {
             }
             return parseToken(response.body(), step);
         } catch (IOException e) {
-            throw new B2bClientException(step + " failed calling " + endpoint + ": " + e.getMessage(), e);
+            throw HttpSupport.transportError(step, endpoint, e, TOKEN_TIMEOUT);
         }
     }
 

@@ -35,7 +35,7 @@ public final class UserAuthService {
             try (var listener = CallbackListener.start(URI.create(config.callbackUri()), state, tls.context())) {
                 openBrowser.accept(authorizationUri(config, state, nonce));
                 var code = listener.awaitCode(LOGIN_TIMEOUT);
-                log.info("User authorization code: {}", code);
+                log.debug("User authorization code: {}", code);
                 return exchangeCode(config, code);
             }
         } catch (IOException | GeneralSecurityException e) {

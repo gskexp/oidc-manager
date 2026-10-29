@@ -1,211 +1,237 @@
 package com.example.b2b;
 
-import lombok.RequiredArgsConstructor;
-import lombok.AccessLevel;
-
+import com.example.b2b.config.AppConfig;
 import com.example.b2b.config.ConfigLoader;
 import com.example.b2b.config.Environment;
+import com.example.b2b.config.StartupConfig;
+import com.example.b2b.config.StartupConfig.Action;
+import com.example.b2b.config.StartupConfigLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 import java.io.PrintStream;
+import java.net.URI;
 import java.nio.file.Path;
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.Consumer;
 
-/**
- * Interactive entry point for the B2B API testing tool.
- *
- * <p>Configuration is read from {@code ./data} by default; override with
- * {@code -Db2b.dataDir=<dir>}.</p>
- */
+/** CLI orchestration for device activation, individual token steps and the full flow. */
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class Main {
-
-    private static final String DATA_DIR_PROPERTY = "b2b.dataDir";
-
-    private final Scanner scanner;
+    private final ConsoleInput input;
     private final Path dataDir;
     private final ConfigLoader configLoader;
     private final DeviceStore deviceStore;
     private final ObjectMapper mapper;
     private final PrintStream out;
     private final PrintStream err;
+    private final Consumer<URI> openBrowser;
+    private final Map<String, String> userTokens = new HashMap<>();
+    private final Map<String, String> b2bTokens = new HashMap<>();
+    private StartupConfig startup = StartupConfig.defaults();
 
     public static void main(String[] args) {
-        var dataDir = Path.of(System.getProperty(DATA_DIR_PROPERTY, "data"));
+        var dataDir = Path.of(System.getProperty("b2b.dataDir", "data"));
         var mapper = new ObjectMapper();
         try (var scanner = new Scanner(System.in)) {
-            new Main(scanner, dataDir, new ConfigLoader(dataDir), new DeviceStore(dataDir, mapper), mapper,
-                    System.out, System.err).run();
+            var input = new ConsoleInput(scanner, System.out, System.err);
+            new Main(input, dataDir, new ConfigLoader(dataDir), new DeviceStore(dataDir, mapper), mapper,
+                    System.out, System.err, BrowserLauncher::open).run();
         }
     }
 
-    /** Runs the menu loop until the user exits or input ends. */
     void run() {
-        out.println("=============================================");
-        out.println("   B2B API Testing & Authentication Tool");
-        out.println("=============================================");
-        while (true) {
-            out.println();
-            out.println("Main Menu");
-            out.println("  1. Register Device");
-            out.println("  2. User Sign-in & Generate Token");
-            out.println("  3. Exit");
-            out.println("  4. Generate Unattended B2B Token");
-            out.println("  5. Generate Final Token (Full Flow)");
-            var choice = promptNumber("Select an option [1-5]: ", 1, 5);
-            if (choice.isEmpty() || choice.get() == 3) {
+        out.println("B2B API Testing & Authentication Tool");
+        try {
+            startup = new StartupConfigLoader(dataDir).load();
+        } catch (B2bClientException e) {
+            err.println("[ERROR] " + e.getMessage());
+            return;
+        }
+        if (startup.action() != Action.MAIN_MENU) {
+            execute(startup.action());
+            if (startup.exitAfterAction() || Thread.currentThread().isInterrupted()) return;
+        }
+        mainMenu();
+    }
+
+    private void mainMenu() {
+        while (!Thread.currentThread().isInterrupted()) {
+            out.println("\nMain Menu");
+            out.println("  1. Activate Device");
+            out.println("  2. Select Device & Run Full Flow");
+            out.println("  3. Check Individual Token Steps");
+            out.println("  4. Exit");
+            var choice = input.number("Select an option [1-4]: ", 1, 4);
+            if (choice.isEmpty() || choice.get() == 4) {
                 out.println("Goodbye.");
                 return;
             }
-            try {
-                runOperation(choice.get());
-            } catch (B2bClientException e) {
-                err.println("[ERROR] " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                err.println("[ERROR] Operation interrupted.");
-            } catch (IllegalArgumentException e) {
-                // Typically a malformed endpoint URI in the configuration.
-                err.println("[ERROR] Invalid value in configuration: " + e.getMessage());
+            execute(switch (choice.get()) {
+                case 1 -> Action.ACTIVATE_DEVICE;
+                case 2 -> Action.FULL_FLOW;
+                default -> Action.TOKEN_STEPS;
+            });
+        }
+    }
+
+    private void tokenStepsMenu() {
+        while (!Thread.currentThread().isInterrupted()) {
+            out.println("\nIndividual Token Steps");
+            out.println("  1. Unattended B2B Token");
+            out.println("  2. Attended User Token");
+            out.println("  3. Final Token Exchange Only");
+            out.println("  4. Back");
+            var choice = input.number("Step [1-4]: ", 1, 4);
+            if (choice.isEmpty() || choice.get() == 4) return;
+            execute(switch (choice.get()) {
+                case 1 -> Action.UNATTENDED_TOKEN;
+                case 2 -> Action.ATTENDED_TOKEN;
+                default -> Action.FINAL_TOKEN;
+            });
+        }
+    }
+
+    private void execute(Action action) {
+        try {
+            switch (action) {
+                case ACTIVATE_DEVICE -> activateDevice();
+                case FULL_FLOW -> fullFlow();
+                case TOKEN_STEPS -> tokenStepsMenu();
+                case UNATTENDED_TOKEN -> unattendedToken();
+                case ATTENDED_TOKEN -> attendedToken();
+                case FINAL_TOKEN -> finalToken();
+                default -> throw new IllegalArgumentException("Unsupported startup action: " + action);
             }
+        } catch (B2bClientException | IllegalArgumentException e) {
+            err.println("[ERROR] " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            err.println("[ERROR] Operation interrupted.");
         }
     }
 
-    private void runOperation(int choice) throws B2bClientException, InterruptedException {
-        switch (choice) {
-            case 1 -> registerDevice();
-            case 2 -> generateUserToken();
-            case 4 -> generateDeviceToken(false);
-            case 5 -> generateDeviceToken(true);
-            default -> throw new IllegalArgumentException("Unknown menu option: " + choice);
-        }
-    }
-
-    private void registerDevice() throws B2bClientException, InterruptedException {
-        var environment = selectEnvironment();
-        if (environment.isEmpty()) {
-            return;
-        }
-        var config = configLoader.load(environment.get());
-
-        out.println();
-        var raNumber = promptText("RA number: ");
-        var deviceName = raNumber.isEmpty() ? Optional.<String>empty() : promptText("Device name: ");
-        var otac = deviceName.isEmpty() ? Optional.<String>empty() : promptText("OTAC (one-time activation code): ");
-        if (otac.isEmpty()) {
-            return;
-        }
-
-        var alias = DeviceStore.aliasFor(deviceName.get());
-        var existing = deviceStore.find(environment.get(), alias);
-        if (existing.isPresent() && existing.get().isRegistered()
-                && !confirm("Device '" + existing.get().deviceName() + "' is already registered in "
-                + environment.get().displayName() + ". Replace its key pair? [y/N]: ")) {
-            out.println("Cancelled.");
-            return;
-        }
-
-        new DeviceRegistrationService(HttpSupport.newClient(), mapper, deviceStore).register(
-                environment.get(), config,
-                new DeviceRegistrationService.RegistrationRequest(raNumber.get(), deviceName.get(), otac.get()));
-    }
-
-    private void generateUserToken() throws B2bClientException, InterruptedException {
+    private void activateDevice() throws B2bClientException, InterruptedException {
         var environment = selectEnvironment();
         if (environment.isEmpty()) return;
         var config = configLoader.load(environment.get());
-        var service = new UserAuthService(HttpSupport.newClient(), mapper, dataDir, BrowserLauncher::open);
-        var token = service.authenticate(config);
-        out.println("User access token: " + token.accessToken());
-        out.println("Token type: " + token.tokenType() + ", expires in: " + token.expiresIn() + " seconds");
+        var defaults = startup.activation();
+        var raNumber = input.text("RA number: ", defaults.raNumber());
+        if (raNumber.isEmpty()) return;
+        var deviceName = input.text("Device name: ", defaults.deviceName());
+        if (deviceName.isEmpty()) return;
+        var otac = input.text("OTAC (one-time activation code): ", defaults.otac());
+        if (otac.isEmpty()) return;
+        var existing = deviceStore.find(environment.get(), DeviceStore.aliasFor(deviceName.get()));
+        if (existing.isPresent() && existing.get().isRegistered() && !input.confirm("Device '"
+                + existing.get().deviceName() + "' is already activated. Replace its key pair? [y/N]: ")) {
+            out.println("Cancelled.");
+            return;
+        }
+        new DeviceRegistrationService(HttpSupport.newClient(), mapper, deviceStore).register(environment.get(), config,
+                new DeviceRegistrationService.RegistrationRequest(raNumber.get(), deviceName.get(), otac.get()));
     }
 
-    private void generateDeviceToken(boolean fullFlow) throws B2bClientException, InterruptedException {
+    private void fullFlow() throws B2bClientException, InterruptedException {
         var environment = selectEnvironment();
         if (environment.isEmpty()) return;
         var config = configLoader.load(environment.get());
         var key = selectDeviceKey(environment.get());
         if (key.isEmpty()) return;
-        var exchanges = new TokenExchangeService(new TokenClient(HttpSupport.newClient(), mapper));
-        var signer = new JwtSigner(mapper);
-        TokenResponse token;
-        if (fullFlow) {
-            var userAuth = new UserAuthService(HttpSupport.newClient(), mapper, dataDir, BrowserLauncher::open);
-            token = new TokenFlowService(exchanges, userAuth, signer).authenticate(config, key.get());
-        } else {
-            var assertion = signer.createClientAssertion(key.get().privateKey(), key.get().alias(),
-                    config.clientId(), config.tokenEndpoint());
-            token = exchanges.unattended(config, assertion);
-        }
-        out.println((fullFlow ? "Final access token: " : "Unattended B2B access token: ") + token.accessToken());
+        var flow = new TokenFlowService(exchanges(), userAuth(), new JwtSigner(mapper));
+        var token = flow.authenticate(config, key.get());
+        out.println("Final access token: " + token.accessToken());
     }
 
-    private Optional<SigningKey> selectDeviceKey(Environment environment) {
+    private void unattendedToken() throws B2bClientException, InterruptedException {
+        var environment = selectEnvironment();
+        if (environment.isEmpty()) return;
+        var config = configLoader.load(environment.get());
+        var key = selectDeviceKey(environment.get());
+        if (key.isEmpty()) return;
+        var token = exchanges().unattended(config, assertion(config, key.get()));
+        b2bTokens.put(deviceTokenKey(environment.get(), key.get()), token.accessToken());
+        out.println("Unattended B2B access token: " + token.accessToken());
+    }
+
+    private void attendedToken() throws B2bClientException, InterruptedException {
+        var environment = selectEnvironment();
+        if (environment.isEmpty()) return;
+        var token = userAuth().authenticate(configLoader.load(environment.get()));
+        userTokens.put(environment.get().id(), token.accessToken());
+        out.println("User access token: " + token.accessToken());
+    }
+
+    private void finalToken() throws B2bClientException, InterruptedException {
+        var environment = selectEnvironment();
+        if (environment.isEmpty()) return;
+        var config = configLoader.load(environment.get());
+        var key = selectDeviceKey(environment.get());
+        if (key.isEmpty()) return;
+        var userToken = input.text("User access token: ",
+                userTokens.getOrDefault(environment.get().id(), startup.tokens().userToken()));
+        if (userToken.isEmpty()) return;
+        var b2bToken = input.text("B2B access token: ",
+                b2bTokens.getOrDefault(deviceTokenKey(environment.get(), key.get()), startup.tokens().b2bToken()));
+        if (b2bToken.isEmpty()) return;
+        var token = exchanges().finalToken(config, userToken.get(), b2bToken.get(), assertion(config, key.get()));
+        out.println("Final access token: " + token.accessToken());
+    }
+
+    private TokenExchangeService exchanges() {
+        return new TokenExchangeService(new TokenClient(HttpSupport.newClient(), mapper));
+    }
+
+    private UserAuthService userAuth() {
+        return new UserAuthService(HttpSupport.newClient(), mapper, dataDir, openBrowser);
+    }
+
+    private String assertion(AppConfig config, SigningKey key) throws B2bClientException {
+        return new JwtSigner(mapper).createClientAssertion(key.privateKey(), key.alias(), config.clientId(), config.tokenEndpoint());
+    }
+
+    private static String deviceTokenKey(Environment environment, SigningKey key) {
+        return environment.id() + "/" + key.alias();
+    }
+
+    private Optional<SigningKey> selectDeviceKey(Environment environment) throws B2bClientException {
         var devices = deviceStore.listRegistered(environment);
-        if (devices.isEmpty()) {
-            err.println("No registered devices for " + environment.displayName() + ". Register a device first.");
-            return Optional.empty();
+        if (devices.isEmpty()) throw new B2bClientException("No activated devices for " + environment.displayName() + ". Activate a device first.");
+        if (hasValue(startup.deviceAlias())) {
+            var device = devices.stream().filter(item -> item.alias().equalsIgnoreCase(startup.deviceAlias().trim()))
+                    .findFirst().orElseThrow(() -> new B2bClientException("No activated device with alias '"
+                            + startup.deviceAlias() + "' in " + environment.displayName()));
+            return Optional.of(signingKey(environment, device));
         }
-        out.println("Select registered device");
-        for (var index = 0; index < devices.size(); index++) {
-            out.println("  " + (index + 1) + ". " + devices.get(index).deviceName());
-        }
-        return promptNumber("Device [1-" + devices.size() + "]: ", 1, devices.size()).map(index -> {
-            var device = devices.get(index - 1);
-            return new SigningKey(device.deviceName(), device.alias(), deviceStore.signingKeyPath(environment, device.alias()));
-        });
+        out.println("Select activated device");
+        for (var index = 0; index < devices.size(); index++) out.println("  " + (index + 1) + ". " + devices.get(index).deviceName());
+        return input.number("Device [1-" + devices.size() + "]: ", 1, devices.size())
+                .map(index -> signingKey(environment, devices.get(index - 1)));
+    }
+
+    private SigningKey signingKey(Environment environment, DeviceMetadata device) {
+        return new SigningKey(device.deviceName(), device.alias(), deviceStore.signingKeyPath(environment, device.alias()));
     }
 
     private Optional<Environment> selectEnvironment() throws B2bClientException {
         var environments = Environment.values();
-        out.println();
+        if (hasValue(startup.environment())) {
+            return Arrays.stream(environments).filter(env -> env.id().equalsIgnoreCase(startup.environment().trim())).findFirst();
+        }
         out.println("Select Environment");
-        for (var i = 0; i < environments.length; i++) {
-            out.println("  " + (i + 1) + ". " + configLoader.load(environments[i]).label());
+        for (var index = 0; index < environments.length; index++) {
+            out.println("  " + (index + 1) + ". " + configLoader.load(environments[index]).label());
         }
-        return promptNumber("Environment [1-" + environments.length + "]: ", 1, environments.length)
-                .map(i -> environments[i - 1]);
+        return input.number("Environment [1-" + environments.length + "]: ", 1, environments.length)
+                .map(index -> environments[index - 1]);
     }
 
-    /** Prompts until a number in range is entered; empty when input ends. */
-    private Optional<Integer> promptNumber(String prompt, int min, int max) {
-        while (true) {
-            var line = readLine(prompt);
-            if (line.isEmpty()) {
-                return Optional.empty();
-            }
-            try {
-                var value = Integer.parseInt(line.get());
-                if (value >= min && value <= max) {
-                    return Optional.of(value);
-                }
-            } catch (NumberFormatException ignored) {
-                // fall through to the error message
-            }
-            err.println("Please enter a number between " + min + " and " + max + ".");
-        }
-    }
-
-    /** Prompts until a non-blank value is entered; empty when input ends. */
-    private Optional<String> promptText(String prompt) {
-        while (true) {
-            var line = readLine(prompt);
-            if (line.isEmpty() || !line.get().isEmpty()) {
-                return line;
-            }
-            err.println("A value is required.");
-        }
-    }
-
-    private boolean confirm(String prompt) {
-        return readLine(prompt).map(s -> s.toLowerCase(Locale.ROOT).startsWith("y")).orElse(false);
-    }
-
-    private Optional<String> readLine(String prompt) {
-        out.print(prompt);
-        out.flush();
-        return scanner.hasNextLine() ? Optional.of(scanner.nextLine().trim()) : Optional.empty();
+    private static boolean hasValue(String value) {
+        return value != null && !value.isBlank();
     }
 }

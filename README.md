@@ -11,6 +11,34 @@ java -jar target/oidc-manager-1.0-SNAPSHOT.jar
 
 Run from the project root. Use `-Db2b.dataDir=/other/dir` to select another data directory.
 
+## Startup state and defaults
+
+Edit `data/startup-config.json` to skip repeated selections. The shipped file launches the normal menu with no defaults. For example, run the full flow immediately for an existing device and exit afterward:
+
+```json
+{
+  "action": "FULL_FLOW",
+  "environment": "dev1",
+  "deviceAlias": "device-a",
+  "exitAfterAction": true
+}
+```
+
+`deviceAlias` is the alias in `data/{env}/devices/{alias}/device.json` (also the device folder name). Unknown or inactive device aliases produce an error. Use `null` or omit a default to be prompted for that selection.
+
+| Setting | Meaning |
+|---|---|
+| `action` | `MAIN_MENU` (default), `TOKEN_STEPS`, `ACTIVATE_DEVICE`, `FULL_FLOW`, `UNATTENDED_TOKEN`, `ATTENDED_TOKEN`, or `FINAL_TOKEN` |
+| `environment` | `dev1`, `dev2`, `test1`, or `preprod`; skips the environment prompt on subsequent actions too |
+| `deviceAlias` | Skips device selection for unattended, final-only and full-flow actions |
+| `activation` | Optional `raNumber`, `deviceName`, and `otac` defaults; missing values are prompted |
+| `tokens` | Optional `userToken` and `b2bToken` inputs for final-only exchange when no token exists in the current session |
+| `exitAfterAction` | `true` exits after the startup action; `false` returns to the main menu |
+
+To skip the initial menu and environment choice for activation, use `"action": "ACTIVATE_DEVICE"` and `"environment": "dev1"`. To open the individual-step submenu directly, use `"action": "TOKEN_STEPS"`. Already activated devices still require confirmation before replacing their keys.
+
+The startup file is read once per launch and lives under `b2b.dataDir` when that directory is overridden. A missing file defaults to interactive behavior; invalid settings produce an error.
+
 ## Environment details
 
 Each of `data/dev1-config.json`, `data/dev2-config.json`, `data/test1-config.json`, and `data/preprod-config.json` contains the environment details and attended-client settings:
@@ -34,9 +62,9 @@ Each of `data/dev1-config.json`, `data/dev2-config.json`, `data/test1-config.jso
 
 The callback is configured per environment. The current value is `https://localhost:8090/openid-callback`; register this exact URL, including case, with the authorization server.
 
-## Register device
+## Activate device
 
-Choose the environment and enter the RA number, device name, and OTAC. The app generates an RSA-2048 key pair and saves `jwk.json`, `private-key.pem`, `public-key.pem`, and `device.json` under `data/{env}/devices/{device-alias}/` before contacting the server.
+Choose **Activate Device**, then the environment and enter the RA number, device name, and OTAC. The app generates an RSA-2048 key pair and saves `jwk.json`, `private-key.pem`, `public-key.pem`, and `device.json` under `data/{env}/devices/{device-alias}/` before contacting the server.
 
 It POSTs to `{issuerUrlBase}/{deviceName}/jwk`, encoding the device name as one path segment:
 
@@ -62,7 +90,11 @@ Sign-in navigation runs in your browser with its own cookies and networking. Sha
 
 ## Unattended and final tokens
 
-Menu option **4** selects an environment and registered device, signs an RS256 assertion with its private PEM, and requests an unattended B2B token. Menu option **5** runs the full flow: unattended B2B token → browser sign-in/user token → final token exchange.
+The main menu offers **Activate Device**, **Select Device & Run Full Flow**, **Check Individual Token Steps**, and **Exit**.
+
+Full flow selects an environment and activated device, then runs unattended B2B token → browser sign-in/user token → final exchange. At INFO level, only the final token is presented as a token result; HTTP diagnostics and browser instructions remain visible. DEBUG also includes intermediate tokens and response bodies. Browser sign-in remains the current attended login mechanism.
+
+The individual-step submenu offers **Unattended B2B Token**, **Attended User Token**, and **Final Token Exchange Only**. Tokens obtained in that session are reused for the same environment (and device for B2B). Final-only never repeats sign-in or unattended exchange: missing tokens come from startup config or console prompts.
 
 All token calls POST `application/x-www-form-urlencoded` to the selected environment's `tokenEndpoint`, with a 10-second timeout and the shared default headers.
 
@@ -85,3 +117,11 @@ Edit `data/http-headers.json` to set the default headers on every outgoing reque
 ## Console logging
 
 Diagnostics use Lombok `@Slf4j` and Logback. HTTP request URLs, response statuses, results, warnings, and errors are logged at INFO or above. DEBUG adds request/response headers and bodies without masking. The bundled `src/main/resources/logback.xml` sets the default root level to INFO; change it to DEBUG for verbose output and rebuild, or supply an external Logback configuration using `-Dlogback.configurationFile=/path/to/logback.xml`.
+
+## PKIX failures when exchanging an authorization code
+
+A callback reaching localhost and a token POST reaching the remote token server use different TLS connections. The browser can trust the sign-in server while the JVM does not trust the token endpoint's CA chain. A private issuer, corporate TLS proxy, or missing server intermediate certificate can produce `PKIX path building failed`.
+
+Place the organisation's root/intermediate CA certificate files in `data/trusted-certs/` as `.pem`, `.crt`, or `.cer` files, then start the operation again. PEM bundles are supported. The app adds these certificates to Java's normal trusted CAs; it does not modify the global JDK installation. When using `-Db2b.dataDir`, put `trusted-certs/` under that directory.
+
+Use the CA that issued the remote token server's certificate, or the corporate proxy CA if TLS interception is in use. The generated localhost callback certificate does not establish trust of the remote token endpoint. Token exchange errors now include the failed endpoint and the certificate directory to configure.

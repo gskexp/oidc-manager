@@ -71,7 +71,7 @@ public final class HttpSupport {
 
     /** Creates a client that does not follow redirects (callers handle them explicitly). */
     public static HttpClient newClient() {
-        return HttpClient.newBuilder()
+        return configuredBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
@@ -79,11 +79,16 @@ public final class HttpSupport {
 
     /** Creates a client that stores cookies in the given manager and does not follow redirects. */
     public static HttpClient newClient(CookieManager cookieManager) {
-        return HttpClient.newBuilder()
+        return configuredBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .cookieHandler(cookieManager)
                 .build();
+    }
+
+    private static HttpClient.Builder configuredBuilder() {
+        var dataDir = Path.of(System.getProperty("b2b.dataDir", "data"));
+        return AdditionalCaTrust.configure(HttpClient.newBuilder(), dataDir);
     }
 
     /** URL-encodes the map as {@code application/x-www-form-urlencoded}, skipping null values. */
@@ -158,17 +163,23 @@ public final class HttpSupport {
 
     /** Converts transport-level failures into actionable messages. */
     public static B2bClientException transportError(String step, URI uri, IOException e) {
+        return transportError(step, uri, e, REQUEST_TIMEOUT);
+    }
+
+    public static B2bClientException transportError(String step, URI uri, IOException e, Duration timeout) {
         var target = uri.toString();
         String reason;
         if (e instanceof HttpConnectTimeoutException) {
             reason = "connection timed out after " + CONNECT_TIMEOUT.toSeconds() + "s";
         } else if (e instanceof HttpTimeoutException) {
-            reason = "no response within " + REQUEST_TIMEOUT.toSeconds() + "s";
+            reason = "no response within " + timeout.toSeconds() + "s";
         } else if (e instanceof ConnectException) {
             reason = "connection refused or host unreachable";
         } else if (e instanceof SSLException) {
-            reason = "TLS handshake failed (" + e.getMessage() + "). If the server uses a private CA, run with "
-                    + "-Djavax.net.ssl.trustStore=<truststore> -Djavax.net.ssl.trustStorePassword=<password>";
+            reason = "TLS certificate/handshake failed (" + e.getMessage() + "). Add the token server's issuing CA "
+                    + "certificate (or corporate proxy CA) as PEM under "
+                    + Path.of(System.getProperty("b2b.dataDir", "data")).resolve("trusted-certs")
+                    + ". The localhost callback certificate is separate from remote server trust.";
         } else {
             reason = e.getClass().getSimpleName() + (e.getMessage() != null ? ": " + e.getMessage() : "");
         }

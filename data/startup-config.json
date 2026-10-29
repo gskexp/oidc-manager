@@ -1,0 +1,15 @@
+{
+  "action": "MAIN_MENU",
+  "environment": null,
+  "deviceAlias": null,
+  "activation": {
+    "raNumber": null,
+    "deviceName": null,
+    "otac": null
+  },
+  "tokens": {
+    "userToken": null,
+    "b2bToken": null
+  },
+  "exitAfterAction": false
+}
