@@ -10,9 +10,9 @@ import java.time.Instant;
  * Contents of {@code data/{env}/devices/<device>/device.json}.
  *
  * @param deviceName           name entered at registration
- * @param alias                keystore alias of the device key pair
+ * @param alias                key identifier of the device key pair
  * @param raNumber             RA number entered at registration
- * @param environment          environment id (dev/test/prod)
+ * @param environment          environment id (dev1/dev2/test1/preprod)
  * @param keyAlgorithm         key algorithm, e.g. RSA
  * @param keySize              key size in bits
  * @param createdAt            ISO-8601 time the key pair was generated

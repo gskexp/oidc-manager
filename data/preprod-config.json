@@ -1,0 +1,12 @@
+{
+  "env": "preprod",
+  "label": "PreProd — Pre-production",
+  "issuerUrlBase": "https://api.preprod.example.com",
+  "tokenEndpoint": "https://auth.preprod.example.com/oauth2/b2b/token",
+  "authorizeEndpoint": "https://login.preprod.example.com/realms/partners/protocol/openid-connect/auth",
+  "attendedClientId": "replace-with-preprod-attended-client-id",
+  "attendedClientSecret": "replace-with-preprod-attended-client-secret",
+  "callbackUri": "https://localhost:8090/openid-callback",
+  "clientId": "replace-with-preprod-unattended-client-id",
+  "audience": "replace-with-preprod-final-token-audience"
+}

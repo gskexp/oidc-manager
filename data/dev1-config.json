@@ -1,0 +1,12 @@
+{
+  "env": "dev1",
+  "label": "Dev1 — Development 1",
+  "issuerUrlBase": "https://api.dev1.example.com",
+  "tokenEndpoint": "https://auth.dev1.example.com/oauth2/b2b/token",
+  "authorizeEndpoint": "https://login.dev1.example.com/realms/partners/protocol/openid-connect/auth",
+  "attendedClientId": "replace-with-dev1-attended-client-id",
+  "attendedClientSecret": "replace-with-dev1-attended-client-secret",
+  "callbackUri": "https://localhost:8090/openid-callback",
+  "clientId": "replace-with-dev1-unattended-client-id",
+  "audience": "replace-with-dev1-final-token-audience"
+}

@@ -1,0 +1,12 @@
+{
+  "env": "test1",
+  "label": "Test1 — Test 1",
+  "issuerUrlBase": "https://api.test1.example.com",
+  "tokenEndpoint": "https://auth.test1.example.com/oauth2/b2b/token",
+  "authorizeEndpoint": "https://login.test1.example.com/realms/partners/protocol/openid-connect/auth",
+  "attendedClientId": "replace-with-test1-attended-client-id",
+  "attendedClientSecret": "replace-with-test1-attended-client-secret",
+  "callbackUri": "https://localhost:8090/openid-callback",
+  "clientId": "replace-with-test1-unattended-client-id",
+  "audience": "replace-with-test1-final-token-audience"
+}

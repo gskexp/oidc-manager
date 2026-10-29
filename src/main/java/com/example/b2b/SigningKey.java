@@ -2,21 +2,21 @@ package com.example.b2b;
 
 import java.nio.file.Path;
 
-/**
- * A key selectable for the token flow: either a key listed in the environment config or a
- * registered device.
- *
- * @param name          friendly name shown in the menu
- * @param alias         alias of the key pair inside the keystore
- * @param keystorePath  keystore holding the key
- * @param storePassword keystore password
- * @param keyPassword   private key password
- */
-public record SigningKey(String name, String alias, Path keystorePath, String storePassword, String keyPassword) {
+/** A registered device signing key backed by an unencrypted RSA PKCS8 PEM file. */
+public record SigningKey(String name, String alias, Path privateKeyPath) {
 
-    /** Masks secrets so the record can never leak them through logging. */
-    @Override
-    public String toString() {
-        return "SigningKey[name=" + name + ", alias=" + alias + ", keystorePath=" + keystorePath + "]";
+    /** Loads the device private key for signing. */
+    public java.security.PrivateKey privateKey() throws B2bClientException {
+        try {
+            var pem = java.nio.file.Files.readString(privateKeyPath);
+            var der = java.util.Base64.getDecoder().decode(pem
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", ""));
+            return java.security.KeyFactory.getInstance("RSA").generatePrivate(
+                    new java.security.spec.PKCS8EncodedKeySpec(der));
+        } catch (java.io.IOException | java.security.GeneralSecurityException | IllegalArgumentException e) {
+            throw new B2bClientException("Unable to load device private key: " + privateKeyPath, e);
+        }
     }
+
 }

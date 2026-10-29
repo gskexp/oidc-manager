@@ -1,0 +1,12 @@
+{
+  "messageId": "urn:uuid:{uuid}",
+  "correlationId": "urn:uuid:{uuid}",
+  "X-Default-Header-1": "replace-me",
+  "X-Default-Header-2": "replace-me",
+  "X-Default-Header-3": "replace-me",
+  "X-Default-Header-4": "replace-me",
+  "X-Default-Header-5": "replace-me",
+  "X-Default-Header-6": "replace-me",
+  "X-Default-Header-7": "replace-me",
+  "X-Default-Header-8": "replace-me"
+}

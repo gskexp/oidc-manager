@@ -1,5 +1,10 @@
 package com.example.b2b;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,9 +16,12 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,7 +29,9 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import javax.net.ssl.SSLException;
 
-/** Shared HTTP helpers: client construction, form encoding, query parsing and safe logging. */
+/** Shared HTTP helpers: client construction, form encoding, query parsing and console logging. */
+@Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class HttpSupport {
 
     public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
@@ -29,7 +39,34 @@ public final class HttpSupport {
     public static final String USER_AGENT = "b2b-api-tester/1.0";
     public static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
 
-    private HttpSupport() {
+
+    /** Logs every request and status; verbose mode includes full headers and body. */
+    public static HttpResponse<String> send(HttpClient client, HttpRequest request)
+            throws IOException, InterruptedException {
+        log.info("[HTTP request] {} {}", request.method(), request.uri());
+        try {
+            var headersFile = Path.of(System.getProperty("b2b.dataDir", "data")).resolve("http-headers.json");
+            var outgoing = new DefaultHeaders(headersFile).apply(request);
+            log.debug("[HTTP request headers] {}", outgoing.headers().map());
+            outgoing = withBodyLogging(outgoing);
+            var response = client.send(outgoing, HttpResponse.BodyHandlers.ofString());
+            log.info("[HTTP response] {}", response.statusCode());
+            log.debug("[HTTP response headers] {}", response.headers().map());
+            log.debug("[HTTP response body] {}", response.body());
+            return response;
+        } catch (IOException | InterruptedException e) {
+            log.error("[HTTP failed] {}: {}", e.getClass().getSimpleName(), e.getMessage());
+            throw e;
+        }
+    }
+
+    private static HttpRequest withBodyLogging(HttpRequest request) {
+        if (!log.isDebugEnabled() || request.bodyPublisher().isEmpty()) {
+            return request;
+        }
+        var publisher = new LoggingBodyPublisher(request.bodyPublisher().orElseThrow());
+        return HttpRequest.newBuilder(request, (name, value) -> true)
+                .method(request.method(), publisher).build();
     }
 
     /** Creates a client that does not follow redirects (callers handle them explicitly). */
@@ -51,7 +88,7 @@ public final class HttpSupport {
 
     /** URL-encodes the map as {@code application/x-www-form-urlencoded}, skipping null values. */
     public static String formEncode(Map<String, String> params) {
-        StringJoiner joiner = new StringJoiner("&");
+        var joiner = new StringJoiner("&");
         params.forEach((key, value) -> {
             if (value != null) {
                 joiner.add(URLEncoder.encode(key, StandardCharsets.UTF_8) + "="
@@ -63,42 +100,31 @@ public final class HttpSupport {
 
     /** Parses the query string of a URI into an ordered map (first occurrence wins). */
     public static Map<String, String> queryParams(URI uri) {
-        Map<String, String> params = new LinkedHashMap<>();
-        String query = uri.getRawQuery();
+        var params = new LinkedHashMap<String, String>();
+        var query = uri.getRawQuery();
         if (query == null || query.isEmpty()) {
             return params;
         }
-        for (String pair : query.split("&")) {
+        for (var pair : query.split("&")) {
             if (pair.isEmpty()) {
                 continue;
             }
-            int eq = pair.indexOf('=');
-            String key = URLDecoder.decode(eq < 0 ? pair : pair.substring(0, eq), StandardCharsets.UTF_8);
-            String value = eq < 0 ? "" : URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+            var eq = pair.indexOf('=');
+            var key = URLDecoder.decode(eq < 0 ? pair : pair.substring(0, eq), StandardCharsets.UTF_8);
+            var value = eq < 0 ? "" : URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
             params.putIfAbsent(key, value);
         }
         return params;
     }
 
-    /** Returns the URI without query or fragment so it can be logged without leaking codes/state. */
+    /** Returns the URI without query or fragment for URI manipulation. */
     public static String withoutQuery(URI uri) {
-        String s = uri.toString();
-        int cut = s.indexOf('?');
+        var s = uri.toString();
+        var cut = s.indexOf('?');
         if (cut < 0) {
             cut = s.indexOf('#');
         }
         return cut < 0 ? s : s.substring(0, cut);
-    }
-
-    /** Masks a token for display: first 8 characters plus its length. */
-    public static String mask(String token) {
-        if (token == null) {
-            return "<none>";
-        }
-        if (token.length() <= 12) {
-            return "***(" + token.length() + " chars)";
-        }
-        return token.substring(0, 8) + "...(" + token.length() + " chars)";
     }
 
     /** Parses a body as JSON if possible. */
@@ -126,13 +152,13 @@ public final class HttpSupport {
         if (text == null) {
             return "";
         }
-        String trimmed = text.strip();
+        var trimmed = text.strip();
         return trimmed.length() <= max ? trimmed : trimmed.substring(0, max) + "...";
     }
 
     /** Converts transport-level failures into actionable messages. */
     public static B2bClientException transportError(String step, URI uri, IOException e) {
-        String target = withoutQuery(uri);
+        var target = uri.toString();
         String reason;
         if (e instanceof HttpConnectTimeoutException) {
             reason = "connection timed out after " + CONNECT_TIMEOUT.toSeconds() + "s";

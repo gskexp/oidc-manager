@@ -38,6 +38,4 @@ build/
 ### Mac OS ###
 .DS_Store
 ### Secrets ###
-# Never commit real keystores; dev/test samples in data/ are throwaway.
-data/prod-*.jks
 data/*.p12

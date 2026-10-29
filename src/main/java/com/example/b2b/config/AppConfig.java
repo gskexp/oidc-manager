@@ -1,21 +1,7 @@
 package com.example.b2b.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-/**
- * Root of an environment configuration file ({@code data/{env}-config.json}).
- *
- * @param environment  human-readable environment name (e.g. "dev")
- * @param endpoints    all HTTP endpoints used by the tool
- * @param oauth        OAuth/OIDC client and user settings
- * @param jks          keystore location, password and the selectable keys
- * @param registration device registration settings (optional)
- */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record AppConfig(String environment, Endpoints endpoints, OAuthSettings oauth, JksSettings jks,
-                        RegistrationSettings registration) {
-
-    public AppConfig {
-        registration = registration == null ? new RegistrationSettings(null) : registration;
-    }
+/** Environment endpoints and attended/unattended client settings for token exchanges. */
+public record AppConfig(String env, String label, String issuerUrlBase, String tokenEndpoint,
+                        String authorizeEndpoint, String attendedClientId, String attendedClientSecret,
+                        String callbackUri, String clientId, String audience) {
 }

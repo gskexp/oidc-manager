@@ -1,15 +1,14 @@
 package com.example.b2b;
 
-import com.example.b2b.config.AppConfig;
+import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
+
 import com.example.b2b.config.ConfigLoader;
 import com.example.b2b.config.Environment;
-import com.example.b2b.config.JksSettings;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Scanner;
@@ -20,32 +19,24 @@ import java.util.Scanner;
  * <p>Configuration is read from {@code ./data} by default; override with
  * {@code -Db2b.dataDir=<dir>}.</p>
  */
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class Main {
 
     private static final String DATA_DIR_PROPERTY = "b2b.dataDir";
 
     private final Scanner scanner;
+    private final Path dataDir;
     private final ConfigLoader configLoader;
     private final DeviceStore deviceStore;
     private final ObjectMapper mapper;
     private final PrintStream out;
     private final PrintStream err;
 
-    Main(Scanner scanner, ConfigLoader configLoader, DeviceStore deviceStore, ObjectMapper mapper,
-         PrintStream out, PrintStream err) {
-        this.scanner = scanner;
-        this.configLoader = configLoader;
-        this.deviceStore = deviceStore;
-        this.mapper = mapper;
-        this.out = out;
-        this.err = err;
-    }
-
     public static void main(String[] args) {
-        Path dataDir = Path.of(System.getProperty(DATA_DIR_PROPERTY, "data"));
-        ObjectMapper mapper = new ObjectMapper();
-        try (Scanner scanner = new Scanner(System.in)) {
-            new Main(scanner, new ConfigLoader(dataDir), new DeviceStore(dataDir, mapper, System.err), mapper,
+        var dataDir = Path.of(System.getProperty(DATA_DIR_PROPERTY, "data"));
+        var mapper = new ObjectMapper();
+        try (var scanner = new Scanner(System.in)) {
+            new Main(scanner, dataDir, new ConfigLoader(dataDir), new DeviceStore(dataDir, mapper), mapper,
                     System.out, System.err).run();
         }
     }
@@ -59,19 +50,17 @@ public final class Main {
             out.println();
             out.println("Main Menu");
             out.println("  1. Register Device");
-            out.println("  2. Generate Token & Test API");
+            out.println("  2. User Sign-in & Generate Token");
             out.println("  3. Exit");
-            Optional<Integer> choice = promptNumber("Select an option [1-3]: ", 1, 3);
+            out.println("  4. Generate Unattended B2B Token");
+            out.println("  5. Generate Final Token (Full Flow)");
+            var choice = promptNumber("Select an option [1-5]: ", 1, 5);
             if (choice.isEmpty() || choice.get() == 3) {
                 out.println("Goodbye.");
                 return;
             }
             try {
-                if (choice.get() == 1) {
-                    registerDevice();
-                } else {
-                    generateTokenAndTestApi();
-                }
+                runOperation(choice.get());
             } catch (B2bClientException e) {
                 err.println("[ERROR] " + e.getMessage());
             } catch (InterruptedException e) {
@@ -84,99 +73,111 @@ public final class Main {
         }
     }
 
+    private void runOperation(int choice) throws B2bClientException, InterruptedException {
+        switch (choice) {
+            case 1 -> registerDevice();
+            case 2 -> generateUserToken();
+            case 4 -> generateDeviceToken(false);
+            case 5 -> generateDeviceToken(true);
+            default -> throw new IllegalArgumentException("Unknown menu option: " + choice);
+        }
+    }
+
     private void registerDevice() throws B2bClientException, InterruptedException {
-        Optional<Environment> environment = selectEnvironment();
+        var environment = selectEnvironment();
         if (environment.isEmpty()) {
             return;
         }
-        AppConfig config = configLoader.load(environment.get());
+        var config = configLoader.load(environment.get());
 
         out.println();
-        Optional<String> raNumber = promptText("RA number: ");
-        Optional<String> deviceName = raNumber.isEmpty() ? Optional.empty() : promptText("Device name: ");
-        Optional<String> otac = deviceName.isEmpty() ? Optional.empty() : promptText("OTAC (one-time activation code): ");
+        var raNumber = promptText("RA number: ");
+        var deviceName = raNumber.isEmpty() ? Optional.<String>empty() : promptText("Device name: ");
+        var otac = deviceName.isEmpty() ? Optional.<String>empty() : promptText("OTAC (one-time activation code): ");
         if (otac.isEmpty()) {
             return;
         }
 
-        String alias = DeviceStore.aliasFor(deviceName.get());
-        Optional<DeviceMetadata> existing = deviceStore.find(environment.get(), alias);
+        var alias = DeviceStore.aliasFor(deviceName.get());
+        var existing = deviceStore.find(environment.get(), alias);
         if (existing.isPresent() && existing.get().isRegistered()
                 && !confirm("Device '" + existing.get().deviceName() + "' is already registered in "
                 + environment.get().displayName() + ". Replace its key pair? [y/N]: ")) {
             out.println("Cancelled.");
             return;
         }
-        if (!confirmProd(environment.get())) {
-            return;
-        }
 
-        new DeviceRegistrationService(HttpSupport.newClient(), mapper, deviceStore, out, err).register(
+        new DeviceRegistrationService(HttpSupport.newClient(), mapper, deviceStore).register(
                 environment.get(), config,
                 new DeviceRegistrationService.RegistrationRequest(raNumber.get(), deviceName.get(), otac.get()));
     }
 
-    private void generateTokenAndTestApi() throws B2bClientException, InterruptedException {
-        Optional<Environment> environment = selectEnvironment();
-        if (environment.isEmpty()) {
-            return;
-        }
-        AppConfig config = configLoader.load(environment.get());
-        Optional<SigningKey> key = selectKey(environment.get(), config);
-        if (key.isEmpty() || !confirmProd(environment.get())) {
-            return;
-        }
-        AuthService.TokenResult token = new AuthService(mapper, out).authenticate(config, key.get());
-        new ApiClient(HttpSupport.newClient(), mapper, out)
-                .call(config.endpoints().targetApiEndpoint(), token.accessToken());
+    private void generateUserToken() throws B2bClientException, InterruptedException {
+        var environment = selectEnvironment();
+        if (environment.isEmpty()) return;
+        var config = configLoader.load(environment.get());
+        var service = new UserAuthService(HttpSupport.newClient(), mapper, dataDir, BrowserLauncher::open);
+        var token = service.authenticate(config);
+        out.println("User access token: " + token.accessToken());
+        out.println("Token type: " + token.tokenType() + ", expires in: " + token.expiresIn() + " seconds");
     }
 
-    private Optional<Environment> selectEnvironment() {
-        Environment[] environments = Environment.values();
+    private void generateDeviceToken(boolean fullFlow) throws B2bClientException, InterruptedException {
+        var environment = selectEnvironment();
+        if (environment.isEmpty()) return;
+        var config = configLoader.load(environment.get());
+        var key = selectDeviceKey(environment.get());
+        if (key.isEmpty()) return;
+        var exchanges = new TokenExchangeService(new TokenClient(HttpSupport.newClient(), mapper));
+        var signer = new JwtSigner(mapper);
+        TokenResponse token;
+        if (fullFlow) {
+            var userAuth = new UserAuthService(HttpSupport.newClient(), mapper, dataDir, BrowserLauncher::open);
+            token = new TokenFlowService(exchanges, userAuth, signer).authenticate(config, key.get());
+        } else {
+            var assertion = signer.createClientAssertion(key.get().privateKey(), key.get().alias(),
+                    config.clientId(), config.tokenEndpoint());
+            token = exchanges.unattended(config, assertion);
+        }
+        out.println((fullFlow ? "Final access token: " : "Unattended B2B access token: ") + token.accessToken());
+    }
+
+    private Optional<SigningKey> selectDeviceKey(Environment environment) {
+        var devices = deviceStore.listRegistered(environment);
+        if (devices.isEmpty()) {
+            err.println("No registered devices for " + environment.displayName() + ". Register a device first.");
+            return Optional.empty();
+        }
+        out.println("Select registered device");
+        for (var index = 0; index < devices.size(); index++) {
+            out.println("  " + (index + 1) + ". " + devices.get(index).deviceName());
+        }
+        return promptNumber("Device [1-" + devices.size() + "]: ", 1, devices.size()).map(index -> {
+            var device = devices.get(index - 1);
+            return new SigningKey(device.deviceName(), device.alias(), deviceStore.signingKeyPath(environment, device.alias()));
+        });
+    }
+
+    private Optional<Environment> selectEnvironment() throws B2bClientException {
+        var environments = Environment.values();
         out.println();
         out.println("Select Environment");
-        for (int i = 0; i < environments.length; i++) {
-            out.println("  " + (i + 1) + ". " + environments[i].displayName());
+        for (var i = 0; i < environments.length; i++) {
+            out.println("  " + (i + 1) + ". " + configLoader.load(environments[i]).label());
         }
         return promptNumber("Environment [1-" + environments.length + "]: ", 1, environments.length)
                 .map(i -> environments[i - 1]);
     }
 
-    /** Lists the keys from the config followed by the devices registered in this environment. */
-    private Optional<SigningKey> selectKey(Environment environment, AppConfig config) {
-        JksSettings jks = config.jks();
-        List<SigningKey> keys = new ArrayList<>();
-        jks.keys().forEach(k -> keys.add(new SigningKey(k.name(), k.alias(), Path.of(jks.jksPath()),
-                jks.jksPassword(), jks.keyPassword())));
-        for (DeviceMetadata device : deviceStore.listRegistered(environment)) {
-            keys.add(new SigningKey("Device '" + device.deviceName() + "' (RA " + device.raNumber() + ")",
-                    device.alias(), deviceStore.keystorePath(environment, device.alias()),
-                    jks.jksPassword(), jks.jksPassword()));
-        }
-        if (keys.isEmpty()) {
-            err.println("No keys available for " + environment.displayName()
-                    + ": add jks.keys to the config or register a device first.");
-            return Optional.empty();
-        }
-
-        out.println();
-        out.println("Available keys for " + config.environment());
-        for (int i = 0; i < keys.size(); i++) {
-            SigningKey k = keys.get(i);
-            out.println("  " + (i + 1) + ". " + k.name() + "  [alias: " + k.alias() + ", " + k.keystorePath() + "]");
-        }
-        return promptNumber("Key [1-" + keys.size() + "]: ", 1, keys.size()).map(i -> keys.get(i - 1));
-    }
-
     /** Prompts until a number in range is entered; empty when input ends. */
     private Optional<Integer> promptNumber(String prompt, int min, int max) {
         while (true) {
-            Optional<String> line = readLine(prompt);
+            var line = readLine(prompt);
             if (line.isEmpty()) {
                 return Optional.empty();
             }
             try {
-                int value = Integer.parseInt(line.get());
+                var value = Integer.parseInt(line.get());
                 if (value >= min && value <= max) {
                     return Optional.of(value);
                 }
@@ -190,20 +191,12 @@ public final class Main {
     /** Prompts until a non-blank value is entered; empty when input ends. */
     private Optional<String> promptText(String prompt) {
         while (true) {
-            Optional<String> line = readLine(prompt);
+            var line = readLine(prompt);
             if (line.isEmpty() || !line.get().isEmpty()) {
                 return line;
             }
             err.println("A value is required.");
         }
-    }
-
-    private boolean confirmProd(Environment environment) {
-        if (environment != Environment.PROD || confirm("You are about to run against PROD. Continue? [y/N]: ")) {
-            return true;
-        }
-        out.println("Cancelled.");
-        return false;
     }
 
     private boolean confirm(String prompt) {

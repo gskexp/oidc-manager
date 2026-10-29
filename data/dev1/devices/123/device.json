@@ -1,0 +1,13 @@
+{
+  "deviceName" : "123",
+  "alias" : "123",
+  "raNumber" : "123",
+  "environment" : "dev1",
+  "keyAlgorithm" : "RSA",
+  "keySize" : 2048,
+  "createdAt" : "2026-10-29T00:54:31.727726Z",
+  "status" : "PENDING",
+  "registeredAt" : null,
+  "lastHttpStatus" : null,
+  "registrationResponse" : null
+}
